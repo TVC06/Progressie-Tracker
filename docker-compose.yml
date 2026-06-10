@@ -1,4 +1,4 @@
-name: progressie-boom
+name: progressie-tracker
 
 services:
   progressie-boom:
