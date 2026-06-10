@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Progressie Boom</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">PB</div>
+          <div>
+            <div class="brand-title">Progressie Boom</div>
+            <div class="brand-subtitle">Projecten, vakken en alle tussenstappen</div>
+          </div>
+        </div>
+
+        <div class="sidebar-actions">
+          <button id="create-toggle-btn" class="primary sidebar-action-btn" type="button">
+            Nieuw project / vak
+          </button>
+        </div>
+
+        <section class="sidebar-card">
+          <div class="section-label">Overzicht</div>
+          <div id="global-summary" class="summary-block"></div>
+        </section>
+
+        <section id="create-panel" class="sidebar-card create-panel hidden">
+          <div class="panel-header">
+            <div>
+              <div class="section-label">Nieuw item</div>
+              <h2>Nieuw project of vak</h2>
+            </div>
+            <button id="create-close-btn" class="ghost tiny-close-btn" type="button">Sluiten</button>
+          </div>
+          <p class="helper-text">
+            Voeg hier een nieuw project, vak of hoofdstuk toe zonder dat het permanent ruimte inneemt.
+          </p>
+          <form id="root-form" class="stack-form">
+            <label>
+              <span>Titel</span>
+              <input name="title" type="text" placeholder="Discrete algebra examen" required />
+            </label>
+            <label>
+              <span>Lengte in paginas</span>
+              <input name="length" type="number" min="0" step="1" placeholder="Bijv. 250" />
+            </label>
+            <button class="primary" type="submit">Project / vak toevoegen</button>
+          </form>
+          <div class="helper-text" style="margin-top: 12px;">
+            Sla op in je browser en in Docker volume.
+          </div>
+        </section>
+
+        <section class="sidebar-card">
+          <div class="section-label">Back-up</div>
+          <div class="backup-panel">
+            <button id="export-json-btn" class="primary" type="button">Exporteren als JSON</button>
+            <label class="file-picker">
+              <span>Importeer JSON-bestand</span>
+              <input id="import-json-input" type="file" accept="application/json,.json" />
+            </label>
+            <button id="import-json-btn" class="ghost" type="button">Importeren en vervangen</button>
+            <p class="helper-text">
+              De data wordt opgeslagen in een lokaal JSON-bestand op de server, ook als Docker niet gebruikt wordt.
+            </p>
+          </div>
+        </section>
+
+        <section class="sidebar-card">
+          <div class="section-label">Projecten en vakken</div>
+          <div id="root-list" class="root-list"></div>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="hero-card">
+          <div>
+            <div class="eyebrow">Voor studieplanning en grote trajecten</div>
+            <h1>Maak een boomstructuur en vink elk deel af, tot op elk niveau dat je wilt.</h1>
+            <p class="hero-copy">
+              Geef elk project, hoofdstuk of subdeel een lengte in paginas. Als een bovenliggend deel klaar is,
+              worden alle onderliggende delen ook afgerond.
+            </p>
+          </div>
+          <div class="hero-stats">
+            <div class="stat">
+              <span id="hero-progress-value">0%</span>
+              <small>totaal voortgang</small>
+            </div>
+            <div class="stat">
+              <span id="hero-node-count">0</span>
+              <small>onderdelen</small>
+            </div>
+            <div class="stat">
+              <span id="hero-root-count">0</span>
+              <small>projecten/vakken</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="content-grid">
+          <section class="panel tree-panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-label">Boom</div>
+                <h2 id="selected-title">Geen project gekozen</h2>
+              </div>
+              <div id="selected-meta" class="meta-pill"></div>
+            </div>
+            <div id="selected-summary" class="selected-summary"></div>
+            <div id="tree-root" class="tree-root"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
