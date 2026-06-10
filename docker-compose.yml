@@ -1,3 +1,5 @@
+name: progressie-boom
+
 services:
   progressie-boom:
     build: .
