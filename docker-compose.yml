@@ -4,9 +4,9 @@ services:
   progressie-boom:
     build: .
     ports:
-      - "3000:3000"
+      - "3002:3002"
     environment:
-      - PORT=3000
+      - PORT=3002
       - DATA_DIR=/app/data
     volumes:
       - ./data:/app/data
