@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Progressie Boom</title>
+    <title>ProgresseT</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -17,7 +17,7 @@
     <div class="bg-orb orb-a"></div>
     <div class="bg-orb orb-b"></div>
     <section id="auth-panel" class="panel auth-panel">
-      <div class="eyebrow">Progressie Boom</div>
+      <div class="eyebrow">ProgresseT</div>
       <h1>Jouw plannen. Jouw voortgang.</h1>
       <p class="helper-text">Log in of maak een account voor je eigen progressiebomen.</p>
       <form id="auth-form" class="stack-form">
@@ -31,9 +31,9 @@
     <div class="app-shell hidden" id="authenticated-app">
       <aside class="sidebar">
         <div class="brand">
-          <div class="brand-mark">PB</div>
+          <div class="brand-mark">PT</div>
           <div>
-            <div class="brand-title">Progressie Boom</div>
+            <div class="brand-title">ProgresseT</div>
             <div class="brand-subtitle">Projecten, vakken en alle tussenstappen</div>
           </div>
         </div>
@@ -70,7 +70,8 @@
               <span>Omvang</span>
               <input name="length" type="number" min="0" step="any" placeholder="Bijv. 250" />
             </label>
-            <label><span>Eenheid</span><input name="unit" list="unit-options" value="paginas" maxlength="30" required /></label>
+            <label><span>Eenheid</span><select name="unit" data-unit-picker><option value="paginas">Pagina's</option><option value="Tpoints">Tpoints</option><option value="uur">Uur</option><option value="taken">Taken</option><option value="__custom__">Eigen eenheid...</option></select></label>
+            <label class="hidden" data-custom-unit-field><span>Eigen eenheid</span><input name="customUnit" maxlength="30" placeholder="Bijv. kilometers" disabled /></label>
             <button class="primary" type="submit">Project / vak toevoegen</button>
           </form>
           <div class="helper-text" style="margin-top: 12px;">
@@ -100,30 +101,25 @@
       </aside>
 
       <main class="workspace">
-        <header class="hero-card">
-          <div>
+        <details class="hero-card" id="intro-panel">
+          <summary class="hero-header">
+            <h1>ProgresseT</h1>
+            <div class="hero-stats">
+              <div class="stat"><span id="hero-progress-value">0%</span><small>voortgang</small></div>
+              <div class="stat"><span id="hero-node-count">0</span><small>onderdelen</small></div>
+              <div class="stat"><span id="hero-root-count">0</span><small>projecten/vakken</small></div>
+            </div>
+            <span class="intro-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="intro-copy">
             <div class="eyebrow">Voor studieplanning en grote trajecten</div>
-            <h1>Maak een boomstructuur en vink elk deel af, tot op elk niveau dat je wilt.</h1>
+            <h2>Maak een boomstructuur en vink elk deel af, tot op elk niveau dat je wilt.</h2>
             <p class="hero-copy">
               Deel je werk op in paginas, uren, Tpoints of een eigen eenheid. Als een bovenliggend deel klaar is,
               worden alle onderliggende delen ook afgerond.
             </p>
           </div>
-          <div class="hero-stats">
-            <div class="stat">
-              <span id="hero-progress-value">0%</span>
-              <small>totaal voortgang</small>
-            </div>
-            <div class="stat">
-              <span id="hero-node-count">0</span>
-              <small>onderdelen</small>
-            </div>
-            <div class="stat">
-              <span id="hero-root-count">0</span>
-              <small>projecten/vakken</small>
-            </div>
-          </div>
-        </header>
+        </details>
 
         <section class="content-grid">
           <section id="selection-panel" class="panel">
@@ -149,14 +145,14 @@
         </section>
       </main>
     </div>
-    <datalist id="unit-options"><option value="paginas"></option><option value="Tpoints"></option><option value="uur"></option><option value="taken"></option></datalist>
     <dialog id="project-settings" class="settings-dialog">
       <div class="panel-header"><h2>Projectinstellingen</h2><button id="settings-close-btn" class="tiny-btn" type="button" aria-label="Instellingen sluiten">Sluiten</button></div>
       <form id="settings-form" class="stack-form">
         <label><span>Titel</span><input name="title" required /></label>
         <label><span>Groep</span><select name="groupId" data-group-picker></select></label>
         <label class="hidden" data-new-group-field><span>Naam nieuwe groep</span><input name="newGroupTitle" maxlength="80" placeholder="Bijv. Werk of School" disabled /></label>
-        <label><span>Eenheid</span><input name="unit" list="unit-options" maxlength="30" required /></label>
+        <label><span>Eenheid</span><select name="unit" data-unit-picker><option value="paginas">Pagina's</option><option value="Tpoints">Tpoints</option><option value="uur">Uur</option><option value="taken">Taken</option><option value="__custom__">Eigen eenheid...</option></select></label>
+        <label class="hidden" data-custom-unit-field><span>Eigen eenheid</span><input name="customUnit" maxlength="30" placeholder="Bijv. kilometers" disabled /></label>
         <p class="helper-text">Alle subdelen gebruiken dezelfde eenheid. Een andere eenheid verandert het label; bestaande aantallen worden niet omgerekend.</p>
         <p id="settings-error" role="alert"></p>
         <button class="primary" type="submit">Instellingen opslaan</button>

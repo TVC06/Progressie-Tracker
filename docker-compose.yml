@@ -1,7 +1,7 @@
 name: progressie-tracker
 
 services:
-  progressie-boom:
+  progresset:
     build: .
     ports:
       - "3002:3002"

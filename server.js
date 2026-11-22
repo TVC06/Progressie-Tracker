@@ -450,7 +450,7 @@ app.delete('/api/nodes/:id', (req, res) => {
 app.get('/api/export', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({
-    app: 'Progressie Boom',
+    app: 'ProgresseT',
     version: 1,
     exportedAt: now(),
     nodes: state.nodes,
@@ -476,5 +476,5 @@ app.listen(PORT, () => {
   if (!fs.existsSync(STATE_FILE)) {
     saveState();
   }
-  console.log(`Progressie Boom draait op http://localhost:${PORT}`);
+  console.log(`ProgresseT draait op http://localhost:${PORT}`);
 });

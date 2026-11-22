@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'progressie-boom-ui-v1';
+const STORAGE_KEY = 'progresset-ui-v1';
 
 const state = {
   data: {
@@ -11,6 +11,7 @@ const state = {
     editingNodeId: null,
     addingChildNodeId: null,
     createPanelOpen: false,
+    bookmarkNodeId: null,
   },
 };
 
@@ -36,6 +37,7 @@ async function showAccount(user) {
   closeSettings();
   document.getElementById('backup-dropdown').open = false;
   document.getElementById('projects-dropdown').open = false;
+  document.getElementById('intro-panel').open = false;
   state.user = user;
   state.data = { roots: [], summary: {} };
   state.ui.selectedRootId = null;
@@ -43,7 +45,9 @@ async function showAccount(user) {
   state.ui.editingNodeId = null;
   state.ui.addingChildNodeId = null;
   state.ui.createPanelOpen = false;
+  state.ui.bookmarkNodeId = null;
   els.rootForm.reset();
+  syncCustomUnitField(els.rootForm);
   els.importJsonInput.value = '';
   render();
   document.getElementById('auth-panel').classList.toggle('hidden', Boolean(user));
@@ -132,6 +136,7 @@ function bindEvents() {
   });
   document.addEventListener('change', event => {
     if (event.target.matches('[data-group-picker]')) syncNewGroupField(event.target.form);
+    if (event.target.matches('[data-unit-picker]')) syncCustomUnitField(event.target.form);
   });
   document.getElementById('selected-settings-btn').addEventListener('click', () => openSettings(state.ui.selectedRootId));
   document.getElementById('settings-close-btn').addEventListener('click', closeSettings);
@@ -150,7 +155,11 @@ function bindEvents() {
     const form = event.target.closest('[data-bookmark]');
     if (!form) return;
     event.preventDefault();
-    try { await updateNode(form.dataset.bookmark, { stoppedPage: new FormData(form).get('stoppedPage') }); }
+    try {
+      await updateNode(form.dataset.bookmark, { stoppedPage: new FormData(form).get('stoppedPage') });
+      state.ui.bookmarkNodeId = null;
+      render();
+    }
     catch (error) { console.error(error); }
   });
   els.rootForm.addEventListener('submit', async (event) => {
@@ -162,10 +171,11 @@ function bindEvents() {
       const groupId = await resolveGroup(formData);
       await createNode({
         title: formData.get('title'), length: formData.get('length'),
-        parentId: null, groupId, unit: formData.get('unit'),
+        parentId: null, groupId, unit: selectedUnit(formData),
       });
       els.rootForm.reset();
       syncNewGroupField(els.rootForm);
+      syncCustomUnitField(els.rootForm);
     } catch (error) { console.error(error); }
     finally { submit.disabled = false; }
   });
@@ -193,6 +203,12 @@ function bindEvents() {
     }
 
     const { action, id } = actionButton.dataset;
+    if (action === 'bookmark') {
+      state.ui.bookmarkNodeId = state.ui.bookmarkNodeId === id ? null : id;
+      render();
+      document.getElementById(`bookmark-${id}`)?.querySelector('input')?.focus();
+      return;
+    }
     if (action === 'project-settings') {
       openSettings(id);
       return;
@@ -367,6 +383,17 @@ function renderSelection(roots) {
 
 function unitOf(root) { return root.unit || 'paginas'; }
 
+function selectedUnit(data) {
+  return data.get('unit') === '__custom__' ? data.get('customUnit') : data.get('unit');
+}
+
+function syncCustomUnitField(form) {
+  const custom = form.elements.unit.value === '__custom__';
+  form.querySelector('[data-custom-unit-field]').classList.toggle('hidden', !custom);
+  form.elements.customUnit.disabled = !custom;
+  form.elements.customUnit.required = custom;
+}
+
 function syncNewGroupField(form) {
   const isNew = form.elements.groupId.value === '__new__';
   form.querySelector('[data-new-group-field]').classList.toggle('hidden', !isNew);
@@ -400,7 +427,10 @@ function openSettings(id) {
   form.reset();
   form.dataset.projectId = id;
   form.elements.title.value = root.title;
-  form.elements.unit.value = unitOf(root);
+  const unit = unitOf(root);
+  form.elements.unit.value = ['paginas', 'Tpoints', 'uur', 'taken'].includes(unit) ? unit : '__custom__';
+  form.elements.customUnit.value = unit;
+  syncCustomUnitField(form);
   form.elements.groupId.innerHTML = groupOptions(root.groupId);
   document.getElementById('settings-error').textContent = '';
   syncNewGroupField(form);
@@ -420,7 +450,7 @@ async function saveSettings(event) {
   try {
     const data = new FormData(form);
     const groupId = await resolveGroup(data);
-    await updateNode(form.dataset.projectId, { title: data.get('title'), unit: data.get('unit'), groupId });
+    await updateNode(form.dataset.projectId, { title: data.get('title'), unit: selectedUnit(data), groupId });
     closeSettings();
   } catch (error) {
     document.getElementById('settings-error').textContent = error.message;
@@ -476,22 +506,25 @@ function renderNode(node, depth, locked) {
               <span>${node.progress}%</span>
               ${node.completed ? '<span>handmatig afgerond</span>' : node.isComplete ? '<span>afgerond via subdelen</span>' : '<span>in progress</span>'}
               ${mismatchBadge}
+              ${node.stoppedPage != null ? `<span class="saved-position">${escapeHtml(positionText(node))}</span>` : ''}
             </div>
             <div class="progress node-progress"><span style="width:${node.progress}%"></span></div>
           </div>
           <div class="node-actions">
             <button class="tiny-btn" data-action="start-child" data-id="${node.id}" ${actionsDisabled} type="button">+ deel</button>
+            <button class="tiny-btn" data-action="bookmark" data-id="${node.id}" type="button" aria-expanded="${state.ui.bookmarkNodeId === node.id}" aria-controls="bookmark-${node.id}">Gestopt op</button>
             <button class="tiny-btn" data-action="start-edit" data-id="${node.id}" ${actionsDisabled} type="button">wijzig</button>
             <button class="tiny-btn danger" data-action="delete-node" data-id="${node.id}" ${actionsDisabled} type="button">verwijder</button>
           </div>
         </div>
 
         ${state.ui.editingNodeId === node.id ? renderEditForm(node) : ''}
-        <form class="bookmark-form" data-bookmark="${escapeAttribute(node.id)}">
+        ${state.ui.bookmarkNodeId === node.id ? `<form class="bookmark-form" id="bookmark-${node.id}" data-bookmark="${escapeAttribute(node.id)}">
           <label>${unitOf(node) === 'paginas' ? 'Gestopt op pagina' : `Gestopt bij (${escapeHtml(unitOf(node))})`} <input aria-label="Stoppositie voor ${escapeAttribute(node.title)}" name="stoppedPage" type="number" min="0" step="any" value="${node.stoppedPage ?? ''}" placeholder="Nog niet ingesteld" /></label>
           <button class="tiny-btn" type="submit">Bewaren</button>
+          <button class="tiny-btn" type="button" data-action="bookmark" data-id="${node.id}">Sluiten</button>
           <span class="helper-text">${node.stoppedPage != null ? escapeHtml(positionText(node)) : 'Leeg bewaren om te wissen'}</span>
-        </form>
+        </form>` : ''}
         ${state.ui.addingChildNodeId === node.id ? renderChildForm(node) : ''}
 
         ${hasChildren && !collapsed ? `<div class="child-stack">${node.children.map((child) => renderNode(child, depth + 1, childLocked)).join('')}</div>` : ''}
@@ -594,7 +627,7 @@ function toggleCollapsed(id) {
 
 function exportJson() {
   const payload = {
-    app: 'Progressie Boom',
+    app: 'ProgresseT',
     version: 1,
     exportedAt: new Date().toISOString(),
     nodes: flattenRootsForExport(state.data.roots),
@@ -605,7 +638,7 @@ function exportJson() {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `progressie-boom-export-${new Date().toISOString().slice(0, 19).replaceAll(':', '-')}.json`;
+  anchor.download = `progresset-export-${new Date().toISOString().slice(0, 19).replaceAll(':', '-')}.json`;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();

@@ -1,4 +1,8 @@
-# Progressie Boom
+# ProgresseT
+
+De compacte ProgresseT-header toont je statistieken. Klik erop om de uitleg open of dicht te klappen. De uitleg staat bij het openen van de app standaard dicht.
+
+Gebruik de knop **Gestopt op** naast **+ deel** om een stoppositie in te stellen of te wijzigen. Alleen tijdens het bewerken verschijnt het invoerveld; een opgeslagen positie blijft als kort label zichtbaar. Paginas, Tpoints, uur en taken zijn vaste keuzes in de eenheidsdropdown. Met **Eigen eenheid...** kun je een ander label invullen.
 
 Bij het openen kies je eerst een vak of project. Groepen zoals School of Werk staan standaard dichtgeklapt; projecten zonder groep zijn direct zichtbaar. Via **Instellingen** bij een project verander je de titel, groep en eenheid. Kies **Nieuwe groep maken...** in de groepsdropdown om meteen een groep aan te maken. Dit kan ook tijdens het aanmaken van een project. Een groep verwijderen behoudt de projecten zonder groep.
 
