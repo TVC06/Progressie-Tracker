@@ -32,6 +32,10 @@ async function bootstrap() {
 
 async function showAccount(user) {
   document.getElementById('project-selection').innerHTML = '';
+  els.rootList.innerHTML = '';
+  closeSettings();
+  document.getElementById('backup-dropdown').open = false;
+  document.getElementById('projects-dropdown').open = false;
   state.user = user;
   state.data = { roots: [], summary: {} };
   state.ui.selectedRootId = null;
@@ -81,7 +85,6 @@ function bindAuth() {
 
 function cacheElements() {
   els.rootList = document.getElementById('root-list');
-  els.globalSummary = document.getElementById('global-summary');
   els.heroProgressValue = document.getElementById('hero-progress-value');
   els.heroNodeCount = document.getElementById('hero-node-count');
   els.heroRootCount = document.getElementById('hero-root-count');
@@ -127,19 +130,21 @@ function bindEvents() {
     state.ui.selectedRootId = null;
     render();
   });
-  document.getElementById('group-form').addEventListener('submit', async event => {
-    event.preventDefault();
-    try {
-      const response = await fetch('/api/groups', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(event.target))) });
-      await handleResponse(response);
-      event.target.reset();
-      await loadData();
-    } catch (error) { console.error(error); }
+  document.addEventListener('change', event => {
+    if (event.target.matches('[data-group-picker]')) syncNewGroupField(event.target.form);
   });
-  document.addEventListener('change', async event => {
-    if (!event.target.matches('[data-project-group]')) return;
-    try { await updateNode(event.target.dataset.projectGroup, { groupId: event.target.value || null }); }
-    catch (error) { console.error(error); }
+  document.getElementById('selected-settings-btn').addEventListener('click', () => openSettings(state.ui.selectedRootId));
+  document.getElementById('settings-close-btn').addEventListener('click', closeSettings);
+  document.getElementById('settings-form').addEventListener('submit', saveSettings);
+  document.getElementById('settings-delete-group-btn').addEventListener('click', async () => {
+    const id = document.getElementById('settings-form').elements.groupId.value;
+    if (!id || id === '__new__' || !confirm('Groep verwijderen? Alle projecten in deze groep blijven bewaard zonder groep.')) return;
+    try {
+      const response = await fetch(`/api/groups/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      await handleResponse(response);
+      closeSettings();
+      await loadData();
+    } catch (error) { document.getElementById('settings-error').textContent = error.message; }
   });
   document.addEventListener('submit', async event => {
     const form = event.target.closest('[data-bookmark]');
@@ -150,17 +155,22 @@ function bindEvents() {
   });
   els.rootForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const formData = new FormData(els.rootForm);
-    await createNode({
-      title: formData.get('title'),
-      length: formData.get('length'),
-      parentId: null,
-      groupId: formData.get('groupId'),
-    });
-    els.rootForm.reset();
+    const submit = els.rootForm.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const formData = new FormData(els.rootForm);
+      const groupId = await resolveGroup(formData);
+      await createNode({
+        title: formData.get('title'), length: formData.get('length'),
+        parentId: null, groupId, unit: formData.get('unit'),
+      });
+      els.rootForm.reset();
+      syncNewGroupField(els.rootForm);
+    } catch (error) { console.error(error); }
+    finally { submit.disabled = false; }
   });
 
-  els.createToggleBtn.addEventListener('click', () => toggleCreatePanel(true));
+  els.createToggleBtn.addEventListener('click', () => toggleCreatePanel());
   els.createCloseBtn.addEventListener('click', () => toggleCreatePanel(false));
 
   els.exportJsonBtn.addEventListener('click', exportJson);
@@ -183,11 +193,8 @@ function bindEvents() {
     }
 
     const { action, id } = actionButton.dataset;
-    if (action === 'delete-group') {
-      if (!confirm('Groep verwijderen? De projecten blijven bewaard zonder groep.')) return;
-      const response = await fetch(`/api/groups/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-      await handleResponse(response);
-      await loadData();
+    if (action === 'project-settings') {
+      openSettings(id);
       return;
     }
 
@@ -245,6 +252,7 @@ function bindEvents() {
 
     state.ui.editingNodeId = null;
     state.ui.addingChildNodeId = null;
+    render();
   });
 }
 
@@ -289,32 +297,7 @@ function renderGlobalSummary(summary) {
 }
 
 function renderSidebar(roots) {
-  if (!roots.length) {
-    els.rootList.innerHTML = `
-      <div class="empty-state">
-        <strong>Nog geen projecten of vakken.</strong><br />
-        Voeg bovenaan je eerste item toe en bouw daarna zo diep verder als je wilt.
-      </div>
-    `;
-    return;
-  }
-
-  els.rootList.innerHTML = roots
-    .map((root) => {
-      const active = root.id === state.ui.selectedRootId ? 'active' : '';
-      return `
-        <button class="root-item ${active}" data-root-id="${root.id}" type="button">
-          <div class="root-title">${escapeHtml(root.title)}</div>
-          <div class="root-stats">
-            <span>${formatPages(root.completedLength)} p / ${formatPages(root.totalLength)} p</span>
-            <span>${root.progress}%</span>
-            <span>${countTree(root)} delen</span>
-          </div>
-          <div class="progress"><span style="width:${root.progress}%"></span></div>
-        </button>
-      `;
-    })
-    .join('');
+  els.rootList.innerHTML = groupedProjects(roots, els.rootList, true);
 }
 
 function renderCreatePanel() {
@@ -342,7 +325,7 @@ function renderSelectedRoot(roots) {
   }
 
   els.selectedTitle.textContent = selected.title;
-  els.selectedMeta.textContent = `${formatPages(selected.totalLength)} p totaal`;
+  els.selectedMeta.textContent = `${formatPages(selected.totalLength)} ${unitOf(selected)} totaal`;
   els.selectedSummary.innerHTML = `
     <div class="summary-grid">
       <div class="summary-kpi">
@@ -350,11 +333,11 @@ function renderSelectedRoot(roots) {
         <span>voortgang</span>
       </div>
       <div class="summary-kpi">
-        <strong>${formatPages(selected.completedLength)} p</strong>
+        <strong>${formatPages(selected.completedLength)} ${escapeHtml(unitOf(selected))}</strong>
         <span>afgerond</span>
       </div>
       <div class="summary-kpi">
-        <strong>${formatPages(selected.totalLength)} p</strong>
+        <strong>${formatPages(selected.totalLength)} ${escapeHtml(unitOf(selected))}</strong>
         <span>totale lengte</span>
       </div>
       <div class="summary-kpi">
@@ -368,31 +351,101 @@ function renderSelectedRoot(roots) {
 }
 
 function groupOptions(selected = '') {
-  return `<option value="">Zonder groep</option>` + (state.data.groups || []).map(g => `<option value="${escapeAttribute(g.id)}" ${selected === g.id ? 'selected' : ''}>${escapeHtml(g.title)}</option>`).join('');
+  return `<option value="">Zonder groep</option>` + (state.data.groups || []).map(g => `<option value="${escapeAttribute(g.id)}" ${selected === g.id ? 'selected' : ''}>${escapeHtml(g.title)}</option>`).join('') + `<option value="__new__" ${selected === '__new__' ? 'selected' : ''}>+ Nieuwe groep maken...</option>`;
 }
 
 function renderSelection(roots) {
   const selection = document.getElementById('project-selection');
-  const openGroups = new Set([...selection.querySelectorAll('details[open]')].map(el => el.dataset.group));
   document.getElementById('selection-panel').classList.toggle('hidden', Boolean(state.ui.selectedRootId));
   document.getElementById('tree-panel').classList.toggle('hidden', !state.ui.selectedRootId);
   const select = document.getElementById('new-root-group');
   const current = select.value;
   select.innerHTML = groupOptions(current);
-  const card = root => `<article class="selection-card">
-    <button type="button" class="root-item" data-root-id="${escapeAttribute(root.id)}">
+  syncNewGroupField(els.rootForm);
+  selection.innerHTML = groupedProjects(roots, selection);
+}
+
+function unitOf(root) { return root.unit || 'paginas'; }
+
+function syncNewGroupField(form) {
+  const isNew = form.elements.groupId.value === '__new__';
+  form.querySelector('[data-new-group-field]').classList.toggle('hidden', !isNew);
+  form.elements.newGroupTitle.disabled = !isNew;
+  form.elements.newGroupTitle.required = isNew;
+  if (form.id === 'settings-form') {
+    document.getElementById('settings-delete-group-btn').classList.toggle('hidden', !form.elements.groupId.value || isNew);
+  }
+}
+
+async function resolveGroup(formData) {
+  const selected = formData.get('groupId');
+  if (selected !== '__new__') return selected || null;
+  const response = await fetch('/api/groups', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: formData.get('newGroupTitle') }),
+  });
+  await handleResponse(response);
+  const group = await response.json();
+  state.data.groups = [...(state.data.groups || []), group];
+  const form = document.getElementById('project-settings').open ? document.getElementById('settings-form') : els.rootForm;
+  form.elements.groupId.innerHTML = groupOptions(group.id);
+  syncNewGroupField(form);
+  return group.id;
+}
+
+function openSettings(id) {
+  const root = state.data.roots.find(root => root.id === id);
+  if (!root) return;
+  const form = document.getElementById('settings-form');
+  form.reset();
+  form.dataset.projectId = id;
+  form.elements.title.value = root.title;
+  form.elements.unit.value = unitOf(root);
+  form.elements.groupId.innerHTML = groupOptions(root.groupId);
+  document.getElementById('settings-error').textContent = '';
+  syncNewGroupField(form);
+  document.getElementById('project-settings').showModal();
+}
+
+function closeSettings() {
+  document.getElementById('project-settings').close();
+}
+
+async function saveSettings(event) {
+  event.preventDefault();
+  const form = event.target;
+  const submit = form.querySelector('[type="submit"]');
+  submit.disabled = true;
+  document.getElementById('settings-error').textContent = '';
+  try {
+    const data = new FormData(form);
+    const groupId = await resolveGroup(data);
+    await updateNode(form.dataset.projectId, { title: data.get('title'), unit: data.get('unit'), groupId });
+    closeSettings();
+  } catch (error) {
+    document.getElementById('settings-error').textContent = error.message;
+  } finally { submit.disabled = false; }
+}
+
+function positionText(node) {
+  return unitOf(node) === 'paginas' ? `Gestopt op pagina ${formatPages(node.stoppedPage)}` : `Gestopt bij ${formatPages(node.stoppedPage)} ${unitOf(node)}`;
+}
+
+function groupedProjects(roots, container, compact = false) {
+  const openGroups = new Set([...container.querySelectorAll('details[open]')].map(el => el.dataset.group));
+  const card = root => `<article class="selection-card ${compact ? 'compact-project' : ''}">
+    <button type="button" class="root-item ${state.ui.selectedRootId === root.id ? 'active' : ''}" data-root-id="${escapeAttribute(root.id)}">
       <div class="root-title">${escapeHtml(root.title)}</div>
-      <div class="root-stats"><span>${root.progress}% afgerond</span><span>${formatPages(root.totalLength)} p</span>${root.stoppedPage ? `<span>Gestopt op pagina ${root.stoppedPage}</span>` : ''}</div>
+      <div class="root-stats"><span>${root.progress}% afgerond</span><span>${formatPages(root.totalLength)} ${escapeHtml(unitOf(root))}</span>${root.stoppedPage != null ? `<span>${escapeHtml(positionText(root))}</span>` : ''}</div>
       <div class="progress"><span style="width:${root.progress}%"></span></div>
     </button>
-    <label class="group-assignment">Groep<select aria-label="Groep voor ${escapeAttribute(root.title)}" data-project-group="${escapeAttribute(root.id)}">${groupOptions(root.groupId)}</select></label>
+    <button class="tiny-btn project-settings-btn" data-action="project-settings" data-id="${escapeAttribute(root.id)}" type="button" aria-label="Instellingen voor ${escapeAttribute(root.title)}">Instellingen</button>
   </article>`;
-  selection.innerHTML = (state.data.groups || []).map(group => {
+  return (state.data.groups || []).map(group => {
     const projects = roots.filter(r => r.groupId === group.id);
     return `<details class="project-group" data-group="${escapeAttribute(group.id)}" ${openGroups.has(group.id) ? 'open' : ''}>
       <summary>${escapeHtml(group.title)} <span class="helper-text">(${projects.length})</span></summary>
-      <div class="project-cards">${projects.map(card).join('') || '<p class="helper-text">Nog geen projecten in deze groep. Kies een groep bij een project.</p>'}</div>
-      <button class="tiny-btn danger" data-action="delete-group" data-id="${escapeAttribute(group.id)}" type="button">Groep verwijderen</button>
+      <div class="project-cards">${projects.map(card).join('') || '<p class="helper-text">Nog geen projecten. Kies deze groep via de projectinstellingen.</p>'}</div>
     </details>`;
   }).join('') + `<div class="project-cards ungrouped-projects">${roots.filter(r => !r.groupId).map(card).join('')}</div>` + (!roots.length ? '<p class="empty-state">Maak links je eerste vak of project aan.</p>' : '');
 }
@@ -407,7 +460,7 @@ function renderNode(node, depth, locked) {
   const actionsDisabled = locked ? 'disabled' : '';
   const childLocked = locked || node.completed;
   const mismatchBadge = node.lengthMismatch
-    ? `<span class="chip">lengte verschilt van onderliggende som (${formatPages(node.childLengthSum)} p)</span>`
+    ? `<span class="chip">omvang verschilt van onderliggende som (${formatPages(node.childLengthSum)} ${escapeHtml(unitOf(node))})</span>`
     : '';
 
   return `
@@ -419,7 +472,7 @@ function renderNode(node, depth, locked) {
           <div class="node-main">
             <div class="node-title ${titleClass}">${escapeHtml(node.title)}</div>
             <div class="node-meta">
-              <span>${formatPages(node.completedLength)} p / ${formatPages(node.totalLength)} p</span>
+              <span>${formatPages(node.completedLength)} / ${formatPages(node.totalLength)} ${escapeHtml(unitOf(node))}</span>
               <span>${node.progress}%</span>
               ${node.completed ? '<span>handmatig afgerond</span>' : node.isComplete ? '<span>afgerond via subdelen</span>' : '<span>in progress</span>'}
               ${mismatchBadge}
@@ -435,9 +488,9 @@ function renderNode(node, depth, locked) {
 
         ${state.ui.editingNodeId === node.id ? renderEditForm(node) : ''}
         <form class="bookmark-form" data-bookmark="${escapeAttribute(node.id)}">
-          <label>Gestopt op pagina <input aria-label="Gestopt op pagina voor ${escapeAttribute(node.title)}" name="stoppedPage" type="number" min="1" step="1" value="${node.stoppedPage || ''}" placeholder="Nog niet ingesteld" /></label>
+          <label>${unitOf(node) === 'paginas' ? 'Gestopt op pagina' : `Gestopt bij (${escapeHtml(unitOf(node))})`} <input aria-label="Stoppositie voor ${escapeAttribute(node.title)}" name="stoppedPage" type="number" min="0" step="any" value="${node.stoppedPage ?? ''}" placeholder="Nog niet ingesteld" /></label>
           <button class="tiny-btn" type="submit">Bewaren</button>
-          <span class="helper-text">${node.stoppedPage ? `Bladwijzer: pagina ${node.stoppedPage}` : 'Leeg bewaren om te wissen'}</span>
+          <span class="helper-text">${node.stoppedPage != null ? escapeHtml(positionText(node)) : 'Leeg bewaren om te wissen'}</span>
         </form>
         ${state.ui.addingChildNodeId === node.id ? renderChildForm(node) : ''}
 
@@ -453,7 +506,7 @@ function renderEditForm(node) {
     <form class="inline-form" data-node-form="${node.id}" data-mode="edit">
       <div class="form-grid">
         <input name="title" type="text" value="${escapeAttribute(node.title)}" required />
-        <input name="length" type="number" min="0" step="1" value="${node.length || ''}" placeholder="Lengte" />
+        <input aria-label="Omvang in ${escapeAttribute(unitOf(node))}" name="length" type="number" min="0" step="any" value="${node.length || ''}" placeholder="Omvang (${escapeAttribute(unitOf(node))})" />
       </div>
       <div class="form-actions">
         <button class="primary" type="submit">Opslaan</button>
@@ -468,7 +521,7 @@ function renderChildForm(node) {
     <form class="inline-form" data-node-form="${node.id}" data-mode="child">
       <div class="form-grid">
         <input name="title" type="text" placeholder="Naam van subdeel" required />
-        <input name="length" type="number" min="0" step="1" placeholder="Lengte" />
+        <input aria-label="Omvang in ${escapeAttribute(unitOf(node))}" name="length" type="number" min="0" step="any" placeholder="Omvang (${escapeAttribute(unitOf(node))})" />
       </div>
       <div class="form-actions">
         <button class="primary" type="submit">Subdeel toevoegen</button>
@@ -478,11 +531,11 @@ function renderChildForm(node) {
   `;
 }
 
-async function createNode({ title, length, parentId, groupId }) {
+async function createNode({ title, length, parentId, groupId, unit }) {
   const response = await fetch('/api/nodes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, length, parentId, groupId }),
+    body: JSON.stringify({ title, length, parentId, groupId, unit }),
   });
   await handleResponse(response);
   await loadData();
@@ -619,6 +672,7 @@ function flattenRootsForExport(roots) {
       parentId,
       title: node.title,
       length: node.length,
+      unit: node.parentId ? undefined : unitOf(node),
       groupId: node.groupId || null,
       stoppedPage: node.stoppedPage ?? null,
       completed: node.completed,
@@ -634,7 +688,7 @@ function flattenRootsForExport(roots) {
 }
 
 function formatPages(value) {
-  return `${Number(value || 0)}`;
+  return new Intl.NumberFormat('nl-BE', { maximumFractionDigits: 4 }).format(Number(value || 0));
 }
 
 function escapeHtml(value) {

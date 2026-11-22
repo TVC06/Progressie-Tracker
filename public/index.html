@@ -47,13 +47,6 @@
         </div>
 
         <button id="home-btn" class="ghost tiny-btn" type="button">Alle vakken en projecten</button>
-        <section class="sidebar-card">
-          <div class="section-label">Groepen</div>
-          <form id="group-form" class="stack-form">
-            <label><span>Nieuwe groep</span><input name="title" placeholder="Bijv. School of Werk" maxlength="80" required /></label>
-            <button class="ghost tiny-btn" type="submit">Groep aanmaken</button>
-          </form>
-        </section>
 
         <section id="create-panel" class="sidebar-card create-panel hidden">
           <div class="panel-header">
@@ -67,15 +60,17 @@
             Voeg hier een nieuw project, vak of hoofdstuk toe zonder dat het permanent ruimte inneemt.
           </p>
           <form id="root-form" class="stack-form">
-            <label><span>Groep</span><select name="groupId" id="new-root-group"></select></label>
+            <label><span>Groep</span><select name="groupId" id="new-root-group" data-group-picker></select></label>
+            <label class="hidden" data-new-group-field><span>Naam nieuwe groep</span><input name="newGroupTitle" maxlength="80" placeholder="Bijv. Werk of School" disabled /></label>
             <label>
               <span>Titel</span>
               <input name="title" type="text" placeholder="Discrete algebra examen" required />
             </label>
             <label>
-              <span>Lengte in paginas</span>
-              <input name="length" type="number" min="0" step="1" placeholder="Bijv. 250" />
+              <span>Omvang</span>
+              <input name="length" type="number" min="0" step="any" placeholder="Bijv. 250" />
             </label>
+            <label><span>Eenheid</span><input name="unit" list="unit-options" value="paginas" maxlength="30" required /></label>
             <button class="primary" type="submit">Project / vak toevoegen</button>
           </form>
           <div class="helper-text" style="margin-top: 12px;">
@@ -83,8 +78,8 @@
           </div>
         </section>
 
-        <section class="sidebar-card">
-          <div class="section-label">Back-up</div>
+        <details class="sidebar-card sidebar-dropdown" id="backup-dropdown">
+          <summary>Back-up</summary>
           <div class="backup-panel">
             <button id="export-json-btn" class="primary" type="button">Exporteren als JSON</button>
             <label class="file-picker">
@@ -96,12 +91,12 @@
               De data wordt opgeslagen in een lokaal JSON-bestand op de server, ook als Docker niet gebruikt wordt.
             </p>
           </div>
-        </section>
+        </details>
 
-        <section class="sidebar-card">
-          <div class="section-label">Projecten en vakken</div>
+        <details class="sidebar-card sidebar-dropdown" id="projects-dropdown">
+          <summary>Projecten en vakken</summary>
           <div id="root-list" class="root-list"></div>
-        </section>
+        </details>
       </aside>
 
       <main class="workspace">
@@ -110,7 +105,7 @@
             <div class="eyebrow">Voor studieplanning en grote trajecten</div>
             <h1>Maak een boomstructuur en vink elk deel af, tot op elk niveau dat je wilt.</h1>
             <p class="hero-copy">
-              Geef elk project, hoofdstuk of subdeel een lengte in paginas. Als een bovenliggend deel klaar is,
+              Deel je werk op in paginas, uren, Tpoints of een eigen eenheid. Als een bovenliggend deel klaar is,
               worden alle onderliggende delen ook afgerond.
             </p>
           </div>
@@ -143,7 +138,10 @@
                 <div class="section-label">Boom</div>
                 <h2 id="selected-title">Geen project gekozen</h2>
               </div>
-              <div id="selected-meta" class="meta-pill"></div>
+              <div class="project-header-actions">
+                <div id="selected-meta" class="meta-pill"></div>
+                <button id="selected-settings-btn" class="tiny-btn" type="button">Instellingen</button>
+              </div>
             </div>
             <div id="selected-summary" class="selected-summary"></div>
             <div id="tree-root" class="tree-root"></div>
@@ -151,5 +149,19 @@
         </section>
       </main>
     </div>
+    <datalist id="unit-options"><option value="paginas"></option><option value="Tpoints"></option><option value="uur"></option><option value="taken"></option></datalist>
+    <dialog id="project-settings" class="settings-dialog">
+      <div class="panel-header"><h2>Projectinstellingen</h2><button id="settings-close-btn" class="tiny-btn" type="button" aria-label="Instellingen sluiten">Sluiten</button></div>
+      <form id="settings-form" class="stack-form">
+        <label><span>Titel</span><input name="title" required /></label>
+        <label><span>Groep</span><select name="groupId" data-group-picker></select></label>
+        <label class="hidden" data-new-group-field><span>Naam nieuwe groep</span><input name="newGroupTitle" maxlength="80" placeholder="Bijv. Werk of School" disabled /></label>
+        <label><span>Eenheid</span><input name="unit" list="unit-options" maxlength="30" required /></label>
+        <p class="helper-text">Alle subdelen gebruiken dezelfde eenheid. Een andere eenheid verandert het label; bestaande aantallen worden niet omgerekend.</p>
+        <p id="settings-error" role="alert"></p>
+        <button class="primary" type="submit">Instellingen opslaan</button>
+        <button id="settings-delete-group-btn" class="tiny-btn danger hidden" type="button">Huidige groep verwijderen</button>
+      </form>
+    </dialog>
   </body>
 </html>

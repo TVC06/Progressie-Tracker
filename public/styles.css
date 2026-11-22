@@ -51,7 +51,21 @@ select {
 .project-group > button { margin-top: 16px; }
 .project-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; margin-top: 18px; }
 .selection-card { min-width: 0; }
-.group-assignment { display: grid; gap: 6px; margin-top: 10px; color: var(--muted); font-size: 0.85rem; }
+.selection-card { display: flex; flex-direction: column; gap: 8px; }
+.selection-card > .root-item { flex: 1; }
+.project-settings-btn { align-self: flex-end; }
+.sidebar-dropdown > summary { cursor: pointer; font-weight: 600; }
+.sidebar-dropdown[open] > summary { margin-bottom: 16px; }
+.sidebar-dropdown:not([open]) > :not(summary) { display: none; }
+.root-list .project-cards { grid-template-columns: minmax(0, 1fr); }
+.root-list .project-group { padding: 12px; margin-top: 0; }
+.root-list .project-group summary { font-size: 1rem; }
+.root-list .root-item { padding: 12px; }
+.project-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.settings-dialog { width: min(480px, calc(100% - 24px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; color: var(--text); background: var(--panel-strong); border: 1px solid var(--line-strong); border-radius: 24px; box-shadow: var(--shadow); }
+.settings-dialog::backdrop { background: rgba(2, 9, 16, 0.75); backdrop-filter: blur(5px); }
+.settings-dialog h2 { margin: 0; font-family: 'Space Grotesk', sans-serif; }
+#settings-error { margin: 0; color: var(--danger); }
 .bookmark-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; padding: 12px; background: rgba(244, 184, 106, 0.06); border-radius: 12px; }
 .bookmark-form label { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .bookmark-form input { width: 180px; }

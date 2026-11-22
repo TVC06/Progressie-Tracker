@@ -67,6 +67,7 @@ function normalizeNode(node) {
     parentId,
     title: title || 'Naamloos',
     length,
+    unit: validateUnit(node.unit),
     groupId: typeof node.groupId === 'string' ? node.groupId : null,
     stoppedPage: node.stoppedPage == null ? null : validatePage(node.stoppedPage),
     completed: Boolean(node.completed),
@@ -86,14 +87,21 @@ function toLength(value) {
     throw new Error('Lengte moet een positief getal zijn.');
   }
 
-  return Math.round(parsed);
+  if (parsed > Number.MAX_SAFE_INTEGER) throw new Error('Lengte is te groot.');
+  return Number(parsed.toFixed(4));
+}
+
+function validateUnit(value) {
+  if (value === undefined) return 'paginas';
+  if (typeof value !== 'string' || !value.trim() || value.trim().length > 30 || /[<>\x00-\x1f]/.test(value)) throw new Error('Geef een eenheid van 1-30 tekens op.');
+  return value.trim();
 }
 
 function validatePage(value) {
   if (value === '' || value === null) return null;
   const page = Number(value);
-  if (!Number.isSafeInteger(page) || page < 1) throw new Error('Geef een geldig paginanummer vanaf 1 op.');
-  return page;
+  if (!Number.isFinite(page) || page < 0 || page > Number.MAX_SAFE_INTEGER) throw new Error('Geef een geldige positie vanaf 0 op.');
+  return Number(page.toFixed(4));
 }
 
 function validateGroup(groupId) {
@@ -159,20 +167,22 @@ function buildForest() {
 
   sortChildren(roots);
 
-  const walk = (node) => {
-    const children = node.children.map(walk);
-    const childLengthSum = children.reduce((sum, child) => sum + child.totalLength, 0);
+  const walk = (node, inheritedUnit) => {
+    const unit = inheritedUnit || node.unit || 'paginas';
+    const children = node.children.map(child => walk(child, unit));
+    const childLengthSum = Number(children.reduce((sum, child) => sum + child.totalLength, 0).toFixed(4));
     const totalLength = node.length > 0 ? node.length : childLengthSum;
     const manualCompleted = Boolean(node.completed);
     const rawCompletedLength = manualCompleted
       ? totalLength
-      : children.reduce((sum, child) => sum + child.completedLength, 0);
+      : Number(children.reduce((sum, child) => sum + child.completedLength, 0).toFixed(4));
     const completedLength = totalLength > 0 ? Math.min(totalLength, rawCompletedLength) : rawCompletedLength;
     const progress = totalLength > 0 ? Math.min(100, (completedLength / totalLength) * 100) : manualCompleted ? 100 : 0;
     const autoComplete = totalLength > 0 && completedLength >= totalLength;
 
     return {
       ...node,
+      unit,
       children,
       childLengthSum,
       totalLength,
@@ -183,7 +193,7 @@ function buildForest() {
     };
   };
 
-  const computedRoots = roots.map(walk);
+  const computedRoots = roots.map(root => walk(root));
   const summary = computedRoots.reduce(
     (acc, node) => {
       acc.totalLength += node.totalLength;
@@ -203,7 +213,7 @@ function countDescendants(node) {
   return node.children.reduce((count, child) => count + 1 + countDescendants(child), 0);
 }
 
-function createNode({ title, length, parentId, groupId }) {
+function createNode({ title, length, parentId, groupId, unit }) {
   const normalizedTitle = String(title || '').trim();
   if (!normalizedTitle) {
     const error = new Error('Geef een titel op.');
@@ -222,6 +232,7 @@ function createNode({ title, length, parentId, groupId }) {
     id: crypto.randomUUID(),
     groupId: parentId ? null : validateGroup(groupId),
     stoppedPage: null,
+    unit: parentId ? undefined : validateUnit(unit),
     parentId: parentId || null,
     title: normalizedTitle,
     length: toLength(length),
@@ -246,6 +257,9 @@ function updateNode(id, payload) {
 
   const groupId = payload.groupId !== undefined ? validateGroup(payload.groupId) : node.groupId;
   const stoppedPage = payload.stoppedPage !== undefined ? validatePage(payload.stoppedPage) : node.stoppedPage;
+  const unit = payload.unit !== undefined ? validateUnit(payload.unit) : node.unit;
+  if (node.parentId && payload.unit !== undefined) throw new Error('De eenheid stel je in bij het project.');
+  const length = payload.length !== undefined ? toLength(payload.length) : node.length;
   if (node.parentId && payload.groupId) throw new Error('Alleen vakken/projecten kunnen in een groep.');
   if (payload.title !== undefined) {
     const title = String(payload.title || '').trim();
@@ -257,9 +271,8 @@ function updateNode(id, payload) {
     node.title = title;
   }
 
-  if (payload.length !== undefined) {
-    node.length = toLength(payload.length);
-  }
+  node.length = length;
+  node.unit = unit;
 
   node.groupId = groupId;
   node.stoppedPage = stoppedPage;

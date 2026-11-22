@@ -1,8 +1,10 @@
 # Progressie Boom
 
-Bij het openen kies je eerst een vak of project. Maak zelf groepen zoals School of Werk aan; deze staan op het selectiescherm standaard dichtgeklapt. Projecten zonder groep zijn direct zichtbaar. Met de groepskeuze bij een project kun je het verplaatsen. Een groep verwijderen behoudt de projecten zonder groep.
+Bij het openen kies je eerst een vak of project. Groepen zoals School of Werk staan standaard dichtgeklapt; projecten zonder groep zijn direct zichtbaar. Via **Instellingen** bij een project verander je de titel, groep en eenheid. Kies **Nieuwe groep maken...** in de groepsdropdown om meteen een groep aan te maken. Dit kan ook tijdens het aanmaken van een project. Een groep verwijderen behoudt de projecten zonder groep.
 
-Bij elk vak en onderdeel kun je onder 'Gestopt op pagina' een bladwijzer bewaren. Leeg bewaren wist de bladwijzer. Dit is een geheugensteuntje en verandert de afgevinkte voortgang niet. Groepen en bladwijzers blijven bewaard na herstart en gaan mee in JSON-backups.
+Kies paginas, Tpoints, uur, taken of typ een eigen eenheid. Alle subdelen nemen de projecteenheid over. Aantallen en stopposities ondersteunen vier decimalen, bijvoorbeeld 2,5 uur. Een andere eenheid wijzigt het label en rekent bestaande aantallen niet om. Bestaande projecten blijven standaard op paginas staan.
+
+Bij elk vak en onderdeel kun je een stoppositie bewaren. Bij paginas heet dit 'Gestopt op pagina', bij andere eenheden 'Gestopt bij'. Leeg bewaren wist de positie. Dit is een geheugensteuntje en verandert de afgevinkte voortgang niet. Groepen, eenheden en stopposities blijven bewaard na herstart en gaan mee in JSON-backups. **Back-up** en **Projecten en vakken** zijn standaard ingeklapt; de projectnavigatie heeft dezelfde groepsindeling als het startscherm.
 
 ## Accounts
 
