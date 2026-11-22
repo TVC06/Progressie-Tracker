@@ -18,7 +18,9 @@ Bij het openen kies je eerst een vak of project. Groepen zoals School of Werk st
 
 Kies paginas, Tpoints, uur, taken of typ een eigen eenheid. Alle subdelen nemen de projecteenheid over. Aantallen en stopposities ondersteunen vier decimalen, bijvoorbeeld 2,5 uur. Een andere eenheid wijzigt het label en rekent bestaande aantallen niet om. Bestaande projecten blijven standaard op paginas staan.
 
-Bij elk vak en onderdeel kun je een stoppositie bewaren. Bij paginas heet dit 'Gestopt op pagina', bij andere eenheden 'Gestopt bij'. Leeg bewaren wist de positie. Dit is een geheugensteuntje en verandert de afgevinkte voortgang niet. Groepen, eenheden en stopposities blijven bewaard na herstart en gaan mee in JSON-backups. **Back-up** en **Projecten en vakken** zijn standaard ingeklapt; de projectnavigatie heeft dezelfde groepsindeling als het startscherm.
+Bij elk vak en onderdeel kun je een stoppositie bewaren. Bij paginas heet dit 'Gestopt op pagina', bij andere eenheden 'Gestopt bij'. De positie telt vanaf het begin van dat onderdeel: 25 van 100 paginas betekent 25% afgerond. Dit werkt ook met uren en Tpoints. Voortgang van subdelen telt mee bij hun ouders. Een stoppositie op een ouder overlapt met die van zijn kinderen; de hoogste van beide telt zodat er geen dubbeltelling ontstaat. Het percentage wordt begrensd op 100%.
+
+Afvinken telt het hele onderdeel en alle subdelen als afgerond; de stoppositie en invoerknop verdwijnen dan. Bij opnieuw openen blijft een eerder opgeslagen positie behouden en telt die weer mee. Leeg bewaren wist de positie en de bijbehorende gedeeltelijke voortgang. Groepen, eenheden en stopposities blijven bewaard na herstart en gaan mee in JSON-backups. **Back-up** en **Projecten en vakken** zijn standaard ingeklapt; de projectnavigatie heeft dezelfde groepsindeling als het startscherm.
 
 ## Accounts
 

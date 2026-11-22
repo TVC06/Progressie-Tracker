@@ -57,7 +57,7 @@ test('scoped sharing adds independent copies and validates AI JSON', async () =>
     assert.equal(withProgress.roots[0].stoppedPage, 30);
     await request('share/import', b, 'POST', { payload: withProgress, keepProgress: true });
     tree = (await request('tree', b)).body;
-    assert.equal(tree.roots.find(root => root.stoppedPage === 30).progress, 25);
+    assert.equal(tree.roots.find(root => root.stoppedPage === 30).progress, 30);
     const sharedGroup = (await request(`share/group/${group.id}`, a)).body;
     assert.equal(sharedGroup.roots.length, 2);
     assert.equal(sharedGroup.group.title, 'School');

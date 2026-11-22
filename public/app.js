@@ -564,7 +564,7 @@ function groupedProjects(roots, container, compact = false) {
   const card = root => `<article class="selection-card ${compact ? 'compact-project' : ''}">
     <button type="button" class="root-item ${state.ui.selectedRootId === root.id ? 'active' : ''}" data-root-id="${escapeAttribute(root.id)}">
       <div class="root-title">${escapeHtml(root.title)}</div>
-      <div class="root-stats"><span>${root.progress}% afgerond</span><span>${formatPages(root.totalLength)} ${escapeHtml(unitOf(root))}</span>${root.stoppedPage != null ? `<span>${escapeHtml(positionText(root))}</span>` : ''}</div>
+      <div class="root-stats"><span>${root.progress}% afgerond</span><span>${formatPages(root.totalLength)} ${escapeHtml(unitOf(root))}</span>${root.stoppedPage != null && !root.isComplete ? `<span>${escapeHtml(positionText(root))}</span>` : ''}</div>
       <div class="progress"><span style="width:${root.progress}%"></span></div>
     </button>
     <div class="project-card-actions">
@@ -603,7 +603,7 @@ function renderNode(node, depth, locked) {
       <article class="node-card ${completeClass}" style="margin-left:${depth === 0 ? 0 : 0}px">
         <div class="node-header">
           ${hasChildren ? `<button class="node-toggle" data-action="toggle-collapse" data-id="${node.id}" type="button">${collapsed ? '+' : '-'}</button>` : `<span class="node-toggle" aria-hidden="true">•</span>`}
-          <button class="node-toggle ${node.isComplete ? 'complete' : ''}" data-action="toggle-complete" data-id="${node.id}" ${canInteract ? '' : 'disabled'} type="button" title="Markeer als gedaan">${toggleIcon}</button>
+          <button class="node-toggle ${node.isComplete ? 'complete' : ''}" data-action="toggle-complete" data-id="${node.id}" ${canInteract ? '' : 'disabled'} type="button" aria-pressed="${node.isComplete}" title="${node.completed ? 'Markeer als niet gedaan' : 'Markeer als gedaan'}">${toggleIcon}</button>
           <div class="node-main">
             <div class="node-title ${titleClass}">${escapeHtml(node.title)}</div>
             <div class="node-meta">
@@ -611,24 +611,25 @@ function renderNode(node, depth, locked) {
               <span>${node.progress}%</span>
               ${node.completed ? '<span>handmatig afgerond</span>' : node.isComplete ? '<span>afgerond via subdelen</span>' : '<span>in progress</span>'}
               ${mismatchBadge}
-              ${node.stoppedPage != null ? `<span class="saved-position">${escapeHtml(positionText(node))}</span>` : ''}
+              ${node.stoppedPage != null && !node.isComplete ? `<span class="saved-position">${escapeHtml(positionText(node))}</span>` : ''}
             </div>
             <div class="progress node-progress"><span style="width:${node.progress}%"></span></div>
           </div>
           <div class="node-actions">
             <button class="tiny-btn" data-action="start-child" data-id="${node.id}" ${actionsDisabled} type="button">+ deel</button>
-            <button class="tiny-btn" data-action="bookmark" data-id="${node.id}" type="button" aria-expanded="${state.ui.bookmarkNodeId === node.id}" aria-controls="bookmark-${node.id}">Gestopt op</button>
+            ${!node.completed && !locked ? `<button class="tiny-btn" data-action="bookmark" data-id="${node.id}" type="button" aria-expanded="${state.ui.bookmarkNodeId === node.id}" aria-controls="bookmark-${node.id}">Gestopt op</button>` : ''}
             <button class="tiny-btn" data-action="start-edit" data-id="${node.id}" ${actionsDisabled} type="button">wijzig</button>
             <button class="tiny-btn danger" data-action="delete-node" data-id="${node.id}" ${actionsDisabled} type="button">verwijder</button>
           </div>
         </div>
 
         ${state.ui.editingNodeId === node.id ? renderEditForm(node) : ''}
-        ${state.ui.bookmarkNodeId === node.id ? `<form class="bookmark-form" id="bookmark-${node.id}" data-bookmark="${escapeAttribute(node.id)}">
+        ${state.ui.bookmarkNodeId === node.id && !node.completed && !locked ? `<form class="bookmark-form" id="bookmark-${node.id}" data-bookmark="${escapeAttribute(node.id)}">
           <label>${unitOf(node) === 'paginas' ? 'Gestopt op pagina' : `Gestopt bij (${escapeHtml(unitOf(node))})`} <input aria-label="Stoppositie voor ${escapeAttribute(node.title)}" name="stoppedPage" type="number" min="0" step="any" value="${node.stoppedPage ?? ''}" placeholder="Nog niet ingesteld" /></label>
           <button class="tiny-btn" type="submit">Bewaren</button>
           <button class="tiny-btn" type="button" data-action="bookmark" data-id="${node.id}">Sluiten</button>
           <span class="helper-text">${node.stoppedPage != null ? escapeHtml(positionText(node)) : 'Leeg bewaren om te wissen'}</span>
+          <span class="helper-text">Tel vanaf het begin van dit onderdeel. Bijvoorbeeld: 25 van 100 = 25%. Leeg bewaren wist deze voortgang.</span>
         </form>` : ''}
         ${state.ui.addingChildNodeId === node.id ? renderChildForm(node) : ''}
 

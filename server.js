@@ -167,16 +167,19 @@ function buildForest() {
 
   sortChildren(roots);
 
-  const walk = (node, inheritedUnit) => {
+  const walk = (node, inheritedUnit, inheritedCompleted = false) => {
     const unit = inheritedUnit || node.unit || 'paginas';
-    const children = node.children.map(child => walk(child, unit));
+    const manualCompleted = Boolean(node.completed) || inheritedCompleted;
+    const children = node.children.map(child => walk(child, unit, manualCompleted));
     const childLengthSum = Number(children.reduce((sum, child) => sum + child.totalLength, 0).toFixed(4));
     const totalLength = node.length > 0 ? node.length : childLengthSum;
-    const manualCompleted = Boolean(node.completed);
+    // A parent's stop position overlaps its children's progress; never add both.
+    const childCompletedLength = Number(children.reduce((sum, child) => sum + child.completedLength, 0).toFixed(4));
+    const stoppedLength = node.stoppedPage == null ? 0 : node.stoppedPage;
     const rawCompletedLength = manualCompleted
       ? totalLength
-      : Number(children.reduce((sum, child) => sum + child.completedLength, 0).toFixed(4));
-    const completedLength = totalLength > 0 ? Math.min(totalLength, rawCompletedLength) : rawCompletedLength;
+      : Math.max(stoppedLength, childCompletedLength);
+    const completedLength = Math.min(totalLength, rawCompletedLength);
     const progress = totalLength > 0 ? Math.min(100, (completedLength / totalLength) * 100) : manualCompleted ? 100 : 0;
     const autoComplete = totalLength > 0 && completedLength >= totalLength;
 
