@@ -1,5 +1,15 @@
 # ProgresseT
 
+## Vakken En Groepen Delen
+
+Klik op **Delen** bij een vak/project of op **Groep delen** in een uitgeklapte groep om een specifiek JSON-bestand te downloaden. Dit kan ook via **Vak delen** boven een geopende boom. Standaard bevat het bestand alleen de structuur, lengtes en eenheden; vink de optie aan om voortgang en stopposities mee te nemen. Accounts en gegevens van andere projecten worden niet meegestuurd.
+
+Via **Vak of groep importeren** op het startscherm voeg je het bestand als nieuwe kopie toe. Bestaande gegevens blijven behouden en elk onderdeel krijgt een nieuw ID. Een groepsbestand maakt standaard een nieuwe groep aan (bij dezelfde naam volgt een nummer). Je kunt ook een bestaande doelgroep kiezen, of vanuit een uitgeklapte groep **Vak importeren in groep** gebruiken. Voortgang wordt alleen overgenomen als je dat expliciet aanvinkt. De volledige back-upfunctie blijft afzonderlijk beschikbaar voor het vervangen van alle eigen bomen.
+
+Klik op **AI-prompt kopieren**, plak de prompt bij je AI en voeg de inhoudstafel, vaknaam en de begin- en eindpagina van de leerstof toe. De AI krijgt het exacte geneste JSON-formaat met een voorbeeld en rekenregels. Bij ontbrekende eindpagina's of onduidelijke paginagrenzen moet de AI eerst om verduidelijking vragen. Controleer de gegenereerde aantallen voor je het bestand importeert via **Vak of groep importeren**. Als de browser automatisch kopieren blokkeert, verschijnt de prompt zodat je die zelf kunt kopieren.
+
+Gedeelde bestanden gebruiken `app: "ProgresseT"`, `version: 1`, `type: "project"` of `"group"` en een `roots`-lijst. Elk onderdeel bevat `title`, een numerieke `length` en optioneel `children`; het vak heeft een `unit`. Een groepsbestand bevat ook `group: { "title": "School" }`. Er zijn maximaal 5000 onderdelen en 60 niveaus per import toegestaan.
+
 De compacte ProgresseT-header toont je statistieken. Klik erop om de uitleg open of dicht te klappen. De uitleg staat bij het openen van de app standaard dicht.
 
 Gebruik de knop **Gestopt op** naast **+ deel** om een stoppositie in te stellen of te wijzigen. Alleen tijdens het bewerken verschijnt het invoerveld; een opgeslagen positie blijft als kort label zichtbaar. Paginas, Tpoints, uur en taken zijn vaste keuzes in de eenheidsdropdown. Met **Eigen eenheid...** kun je een ander label invullen.

@@ -364,7 +364,7 @@ function cloneTreeWithLockedFlags(nodes, ancestorLocked = false) {
 }
 
 const app = express();
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '5mb' }));
 app.use(express.static(PUBLIC_DIR));
 
 const database = loadState();
@@ -376,6 +376,7 @@ const state = {
   set groups(groups) { userContext.getStore().groups = groups; },
 };
 require('./auth')(app, database, saveState, userContext);
+require('./sharing')(app, state, buildForest, saveState);
 
 app.get('/api/tree', (req, res) => {
   const { roots, summary } = buildForest();

@@ -24,6 +24,7 @@ async function bootstrap() {
   bindEvents();
   bindAuth();
   bindAdmin();
+  bindTransfers();
   try {
     const response = await fetch('/api/auth/me');
     const { user } = await response.json();
@@ -34,6 +35,7 @@ async function bootstrap() {
 }
 
 async function showAccount(user) {
+  resetTransferUi();
   document.getElementById('project-selection').innerHTML = '';
   els.rootList.innerHTML = '';
   closeSettings();
@@ -565,12 +567,19 @@ function groupedProjects(roots, container, compact = false) {
       <div class="root-stats"><span>${root.progress}% afgerond</span><span>${formatPages(root.totalLength)} ${escapeHtml(unitOf(root))}</span>${root.stoppedPage != null ? `<span>${escapeHtml(positionText(root))}</span>` : ''}</div>
       <div class="progress"><span style="width:${root.progress}%"></span></div>
     </button>
-    <button class="tiny-btn project-settings-btn" data-action="project-settings" data-id="${escapeAttribute(root.id)}" type="button" aria-label="Instellingen voor ${escapeAttribute(root.title)}">Instellingen</button>
+    <div class="project-card-actions">
+      <button class="tiny-btn" data-action="project-settings" data-id="${escapeAttribute(root.id)}" type="button" aria-label="Instellingen voor ${escapeAttribute(root.title)}">Instellingen</button>
+      <button class="tiny-btn" data-share-type="project" data-share-id="${escapeAttribute(root.id)}" type="button" aria-label="Deel ${escapeAttribute(root.title)}">Delen</button>
+    </div>
   </article>`;
   return (state.data.groups || []).map(group => {
     const projects = roots.filter(r => r.groupId === group.id);
     return `<details class="project-group" data-group="${escapeAttribute(group.id)}" ${openGroups.has(group.id) ? 'open' : ''}>
       <summary>${escapeHtml(group.title)} <span class="helper-text">(${projects.length})</span></summary>
+      <div class="transfer-actions">
+        <button class="tiny-btn" data-share-type="group" data-share-id="${escapeAttribute(group.id)}" type="button">Groep delen</button>
+        <button class="tiny-btn" data-import-group="${escapeAttribute(group.id)}" type="button">Vak importeren in groep</button>
+      </div>
       <div class="project-cards">${projects.map(card).join('') || '<p class="helper-text">Nog geen projecten. Kies deze groep via de projectinstellingen.</p>'}</div>
     </details>`;
   }).join('') + `<div class="project-cards ungrouped-projects">${roots.filter(r => !r.groupId).map(card).join('')}</div>` + (!roots.length ? '<p class="empty-state">Maak links je eerste vak of project aan.</p>' : '');

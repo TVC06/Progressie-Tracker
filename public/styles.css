@@ -54,6 +54,13 @@ select {
 .selection-card { display: flex; flex-direction: column; gap: 8px; }
 .selection-card > .root-item { flex: 1; }
 .project-settings-btn { align-self: flex-end; }
+.project-card-actions, .transfer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.project-card-actions { justify-content: flex-end; }
+.transfer-actions { margin-top: 14px; }
+#create-panel > [data-copy-ai] { margin-top: 12px; }
+.app-notice { position: fixed; bottom: 20px; right: 20px; z-index: 20; max-width: min(460px, calc(100vw - 40px)); padding: 14px 18px; border-radius: 16px; background: var(--panel-strong); color: var(--text); border: 1px solid var(--accent); box-shadow: var(--shadow); }
+#ai-prompt-text { width: 100%; margin-top: 16px; padding: 12px; color: var(--text); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 12px; font: inherit; resize: vertical; }
+#share-error, #share-import-error { color: var(--danger); margin: 0; }
 .sidebar-dropdown > summary { cursor: pointer; font-weight: 600; }
 .sidebar-dropdown[open] > summary { margin-bottom: 16px; }
 .sidebar-dropdown:not([open]) > :not(summary) { display: none; }

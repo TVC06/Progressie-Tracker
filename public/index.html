@@ -11,6 +11,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
+    <script defer src="/ai-prompt.js"></script>
+    <script defer src="/transfers.js"></script>
     <script defer src="/app.js"></script>
   </head>
   <body>
@@ -78,6 +80,7 @@
           <div class="helper-text" style="margin-top: 12px;">
             Je wijzigingen worden automatisch opgeslagen.
           </div>
+          <button class="tiny-btn" type="button" data-copy-ai>AI-prompt kopieren</button>
         </section>
 
         <details class="sidebar-card sidebar-dropdown" id="backup-dropdown">
@@ -133,6 +136,10 @@
             <div class="section-label">Jouw overzicht</div>
             <h2>Kies een vak of project</h2>
             <p class="helper-text">Open een groep of ga meteen verder met een los project.</p>
+            <div class="transfer-actions">
+              <button id="open-share-import-btn" class="tiny-btn" type="button">Vak of groep importeren</button>
+              <button class="tiny-btn" type="button" data-copy-ai>AI-prompt kopieren</button>
+            </div>
             <div id="project-selection"></div>
           </section>
           <section id="tree-panel" class="panel tree-panel hidden">
@@ -144,6 +151,7 @@
               <div class="project-header-actions">
                 <div id="selected-meta" class="meta-pill"></div>
                 <button id="selected-settings-btn" class="tiny-btn" type="button">Instellingen</button>
+                <button id="selected-share-btn" class="tiny-btn" type="button">Vak delen</button>
               </div>
             </div>
             <div id="selected-summary" class="selected-summary"></div>
@@ -176,5 +184,32 @@
         <button class="primary" type="submit">Nieuw wachtwoord opslaan</button>
       </form>
     </dialog>
+    <dialog id="share-dialog" class="settings-dialog">
+      <div class="panel-header"><h2>Delen als JSON</h2><button class="tiny-btn" type="button" data-close-dialog="share-dialog">Sluiten</button></div>
+      <p id="share-title" class="helper-text"></p>
+      <form id="share-form" class="stack-form">
+        <label class="password-visibility"><input type="checkbox" name="progress" /> Mijn voortgang en stopposities meenemen</label>
+        <p class="helper-text">Standaard deel je alleen de structuur, lengtes en eenheden. Stuur het JSON-bestand door; de ontvanger importeert een eigen kopie.</p>
+        <p id="share-error" role="alert" class="helper-text"></p>
+        <button class="primary" type="submit">JSON downloaden</button>
+      </form>
+    </dialog>
+    <dialog id="share-import-dialog" class="settings-dialog">
+      <div class="panel-header"><h2>Vak of groep importeren</h2><button class="tiny-btn" type="button" data-close-dialog="share-import-dialog">Sluiten</button></div>
+      <form id="share-import-form" class="stack-form">
+        <label><span>JSON-bestand</span><input name="file" type="file" accept=".json,application/json" required /></label>
+        <label><span>Toevoegen aan groep</span><select name="targetGroupId" id="share-import-group"></select></label>
+        <label class="password-visibility"><input type="checkbox" name="keepProgress" /> Voortgang uit het bestand meenemen</label>
+        <p class="helper-text">Voegt een nieuwe kopie toe. Je bestaande projecten blijven behouden. Een groepsbestand krijgt standaard een nieuwe groep; je kunt ook een bestaande groep kiezen.</p>
+        <p id="share-import-error" role="alert" class="helper-text"></p>
+        <button class="primary" type="submit">Toevoegen</button>
+      </form>
+    </dialog>
+    <dialog id="ai-prompt-dialog" class="settings-dialog">
+      <div class="panel-header"><h2>AI-prompt</h2><button class="tiny-btn" type="button" data-close-dialog="ai-prompt-dialog">Sluiten</button></div>
+      <p class="helper-text">Automatisch kopieren lukt hier niet. Selecteer en kopieer onderstaande tekst en voeg je inhoudstafel toe bij je AI.</p>
+      <textarea id="ai-prompt-text" rows="12" readonly aria-label="AI-prompt om te kopieren"></textarea>
+    </dialog>
+    <div id="app-notice" class="app-notice hidden" role="status"></div>
   </body>
 </html>
