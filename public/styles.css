@@ -66,6 +66,12 @@ select {
 .settings-dialog::backdrop { background: rgba(2, 9, 16, 0.75); backdrop-filter: blur(5px); }
 .settings-dialog h2 { margin: 0; font-family: 'Space Grotesk', sans-serif; }
 #settings-error { margin: 0; color: var(--danger); }
+.admin-users { display: grid; gap: 12px; margin-top: 16px; }
+.admin-account { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255, 255, 255, 0.03); }
+.admin-account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.password-visibility { display: flex !important; align-items: center; gap: 10px; color: var(--muted); }
+.password-visibility input { width: auto; }
+#password-error { color: var(--danger); }
 .bookmark-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; padding: 12px; background: rgba(244, 184, 106, 0.06); border-radius: 12px; }
 .bookmark-form label { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .bookmark-form input { width: 180px; }

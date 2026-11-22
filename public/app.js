@@ -12,6 +12,7 @@ const state = {
     addingChildNodeId: null,
     createPanelOpen: false,
     bookmarkNodeId: null,
+    adminOpen: false,
   },
 };
 
@@ -22,6 +23,7 @@ async function bootstrap() {
   loadUiState();
   bindEvents();
   bindAuth();
+  bindAdmin();
   try {
     const response = await fetch('/api/auth/me');
     const { user } = await response.json();
@@ -35,6 +37,10 @@ async function showAccount(user) {
   document.getElementById('project-selection').innerHTML = '';
   els.rootList.innerHTML = '';
   closeSettings();
+  document.getElementById('password-dialog').close();
+  document.getElementById('admin-users').innerHTML = '';
+  document.getElementById('admin-status').textContent = '';
+  document.getElementById('admin-btn').classList.toggle('hidden', !user?.isAdmin);
   document.getElementById('backup-dropdown').open = false;
   document.getElementById('projects-dropdown').open = false;
   document.getElementById('intro-panel').open = false;
@@ -46,6 +52,7 @@ async function showAccount(user) {
   state.ui.addingChildNodeId = null;
   state.ui.createPanelOpen = false;
   state.ui.bookmarkNodeId = null;
+  state.ui.adminOpen = false;
   els.rootForm.reset();
   syncCustomUnitField(els.rootForm);
   els.importJsonInput.value = '';
@@ -105,6 +112,91 @@ function cacheElements() {
   els.importJsonBtn = document.getElementById('import-json-btn');
 }
 
+function bindAdmin() {
+  document.getElementById('admin-btn').addEventListener('click', async () => {
+    state.ui.adminOpen = true;
+    render();
+    await loadAdminUsers();
+  });
+  document.getElementById('admin-refresh-btn').addEventListener('click', loadAdminUsers);
+  const dialog = document.getElementById('password-dialog');
+  const form = document.getElementById('admin-password-form');
+  document.getElementById('password-close-btn').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('close', () => {
+    form.reset();
+    form.elements.password.type = 'password';
+    delete form.dataset.userId;
+    document.getElementById('password-account').textContent = '';
+    document.getElementById('password-error').textContent = '';
+  });
+  document.getElementById('password-visible').addEventListener('change', event => {
+    form.elements.password.type = event.target.checked ? 'text' : 'password';
+  });
+  document.getElementById('admin-users').addEventListener('click', async event => {
+    const button = event.target.closest('[data-admin-action]');
+    if (!button) return;
+    const { adminAction, userId, username } = button.dataset;
+    if (adminAction === 'password') {
+      form.dataset.userId = userId;
+      document.getElementById('password-account').textContent = `Account: ${username}`;
+      dialog.showModal();
+      return;
+    }
+    if (!confirm(`Account "${username}" en al zijn projecten, groepen en voortgang definitief verwijderen?`)) return;
+    button.disabled = true;
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      await handleResponse(response);
+      await loadAdminUsers();
+      document.getElementById('admin-status').textContent = `Account ${username} is verwijderd.`;
+    } catch (error) { document.getElementById('admin-status').textContent = error.message; }
+    finally { button.disabled = false; }
+  });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    document.getElementById('password-error').textContent = '';
+    try {
+      const response = await fetch(`/api/admin/users/${form.dataset.userId}/password`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: form.elements.password.value }),
+      });
+      await handleResponse(response);
+      const result = await response.json();
+      dialog.close();
+      if (result.signedOut) {
+        await showAccount(null);
+        document.getElementById('auth-error').textContent = 'Wachtwoord gewijzigd. Log opnieuw in met je nieuwe wachtwoord.';
+      } else {
+        document.getElementById('admin-status').textContent = 'Nieuw wachtwoord opgeslagen. Alle sessies van dit account zijn ingetrokken.';
+      }
+    } catch (error) { document.getElementById('password-error').textContent = error.message; }
+    finally { submit.disabled = false; }
+  });
+}
+
+async function loadAdminUsers() {
+  if (!state.user?.isAdmin) return;
+  const accountId = state.user.id;
+  const status = document.getElementById('admin-status');
+  status.textContent = 'Accounts laden...';
+  try {
+    const response = await fetch('/api/admin/users', { cache: 'no-store' });
+    await handleResponse(response);
+    const { users } = await response.json();
+    if (state.user?.id !== accountId) return;
+    document.getElementById('admin-users').innerHTML = users.map(user => `<article class="admin-account">
+      <div><strong>${escapeHtml(user.username)}</strong><div class="helper-text">${user.projectCount} projecten${user.isAdmin ? ' · Beheerder' : ''}</div></div>
+      <div class="admin-account-actions">
+        <button type="button" class="tiny-btn" data-admin-action="password" data-user-id="${escapeAttribute(user.id)}" data-username="${escapeAttribute(user.username)}">Wachtwoord instellen</button>
+        ${user.id !== accountId ? `<button type="button" class="tiny-btn danger" data-admin-action="delete" data-user-id="${escapeAttribute(user.id)}" data-username="${escapeAttribute(user.username)}">Account verwijderen</button>` : '<span class="helper-text">Je eigen account</span>'}
+      </div>
+    </article>`).join('');
+    status.textContent = `${users.length} accounts`;
+  } catch (error) { if (state.user?.id === accountId) status.textContent = error.message; }
+}
+
 function loadUiState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -131,6 +223,7 @@ function saveUiState() {
 
 function bindEvents() {
   document.getElementById('home-btn').addEventListener('click', () => {
+    state.ui.adminOpen = false;
     state.ui.selectedRootId = null;
     render();
   });
@@ -189,6 +282,7 @@ function bindEvents() {
   document.addEventListener('click', async (event) => {
     const rootButton = event.target.closest('[data-root-id]');
     if (rootButton) {
+      state.ui.adminOpen = false;
       state.ui.selectedRootId = rootButton.dataset.rootId;
       state.ui.editingNodeId = null;
       state.ui.addingChildNodeId = null;
@@ -372,8 +466,10 @@ function groupOptions(selected = '') {
 
 function renderSelection(roots) {
   const selection = document.getElementById('project-selection');
-  document.getElementById('selection-panel').classList.toggle('hidden', Boolean(state.ui.selectedRootId));
-  document.getElementById('tree-panel').classList.toggle('hidden', !state.ui.selectedRootId);
+  const adminOpen = state.ui.adminOpen && state.user?.isAdmin;
+  document.getElementById('admin-panel').classList.toggle('hidden', !adminOpen);
+  document.getElementById('selection-panel').classList.toggle('hidden', adminOpen || Boolean(state.ui.selectedRootId));
+  document.getElementById('tree-panel').classList.toggle('hidden', adminOpen || !state.ui.selectedRootId);
   const select = document.getElementById('new-root-group');
   const current = select.value;
   select.innerHTML = groupOptions(current);

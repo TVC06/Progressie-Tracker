@@ -41,6 +41,7 @@
         <div class="sidebar-actions">
           <span id="account-name" class="helper-text"></span>
           <button id="logout-btn" class="ghost tiny-btn" type="button">Uitloggen</button>
+          <button id="admin-btn" class="ghost tiny-btn hidden" type="button">Accountbeheer</button>
           <button id="create-toggle-btn" class="primary sidebar-action-btn" type="button">
             Nieuw project / vak
           </button>
@@ -122,6 +123,12 @@
         </details>
 
         <section class="content-grid">
+          <section id="admin-panel" class="panel hidden">
+            <div class="panel-header"><div><div class="section-label">Beheer</div><h2>Accounts</h2></div><button id="admin-refresh-btn" class="tiny-btn" type="button">Vernieuwen</button></div>
+            <p class="helper-text">Wachtwoorden zijn beveiligd opgeslagen en kunnen niet worden bekeken. Je kunt een nieuw wachtwoord instellen; de gebruiker wordt dan op alle apparaten uitgelogd.</p>
+            <p id="admin-status" role="status" class="helper-text"></p>
+            <div id="admin-users" class="admin-users"></div>
+          </section>
           <section id="selection-panel" class="panel">
             <div class="section-label">Jouw overzicht</div>
             <h2>Kies een vak of project</h2>
@@ -157,6 +164,16 @@
         <p id="settings-error" role="alert"></p>
         <button class="primary" type="submit">Instellingen opslaan</button>
         <button id="settings-delete-group-btn" class="tiny-btn danger hidden" type="button">Huidige groep verwijderen</button>
+      </form>
+    </dialog>
+    <dialog id="password-dialog" class="settings-dialog">
+      <div class="panel-header"><h2>Wachtwoord instellen</h2><button id="password-close-btn" class="tiny-btn" type="button">Sluiten</button></div>
+      <p id="password-account" class="helper-text"></p>
+      <form id="admin-password-form" class="stack-form">
+        <label><span>Nieuw wachtwoord</span><input name="password" type="password" autocomplete="new-password" minlength="10" maxlength="256" required /></label>
+        <label class="password-visibility"><input id="password-visible" type="checkbox" /> Nieuw wachtwoord tonen</label>
+        <p id="password-error" role="alert" class="helper-text"></p>
+        <button class="primary" type="submit">Nieuw wachtwoord opslaan</button>
       </form>
     </dialog>
   </body>

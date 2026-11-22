@@ -12,6 +12,10 @@ Bij elk vak en onderdeel kun je een stoppositie bewaren. Bij paginas heet dit 'G
 
 ## Accounts
 
+Het account met gebruikersnaam **Thomas** krijgt automatisch beheerrechten (hoofdletters maken niet uit). Er wordt bij de eerste start geen account aangemaakt. Een bestaand Thomas-account krijgt de rechten zodra deze versie draait. Registreer Thomas zelf voordat je de app publiek deelt, want deze gebruikersnaam bepaalt de beheerrechten.
+
+Via **Accountbeheer** ziet Thomas welke accounts bestaan en hoeveel projecten ze hebben. Thomas kan accounts inclusief hun gegevens verwijderen en nieuwe wachtwoorden instellen. Het eigen beheerdersaccount kan niet worden verwijderd. Bestaande wachtwoorden kunnen niet worden bekeken: alleen wachtwoordhashes worden opgeslagen. Een nieuw ingesteld wachtwoord trekt alle sessies van het betrokken account in; bij wijziging van het eigen wachtwoord moet Thomas opnieuw inloggen.
+
 Maak via het beginscherm een account met gebruikersnaam en wachtwoord (minimaal 10 tekens). Elke gebruiker heeft eigen bomen, voortgang, import en export. Je blijft 30 dagen ingelogd; uitloggen trekt de sessie in.
 
 Bij de eerste registratie krijgt het eerste account de bestaande bomen. Maak dit account dus zelf aan voordat je de server deelt. De oorspronkelijke data wordt eerst gekopieerd naar `data/before-accounts.json`.
