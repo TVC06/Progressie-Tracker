@@ -67,6 +67,8 @@ function normalizeNode(node) {
     parentId,
     title: title || 'Naamloos',
     length,
+    groupId: typeof node.groupId === 'string' ? node.groupId : null,
+    stoppedPage: node.stoppedPage == null ? null : validatePage(node.stoppedPage),
     completed: Boolean(node.completed),
     order,
     createdAt: typeof node.createdAt === 'string' ? node.createdAt : now(),
@@ -85,6 +87,19 @@ function toLength(value) {
   }
 
   return Math.round(parsed);
+}
+
+function validatePage(value) {
+  if (value === '' || value === null) return null;
+  const page = Number(value);
+  if (!Number.isSafeInteger(page) || page < 1) throw new Error('Geef een geldig paginanummer vanaf 1 op.');
+  return page;
+}
+
+function validateGroup(groupId) {
+  if (!groupId) return null;
+  if (!state.groups.some(group => group.id === groupId)) throw new Error('Maak deze groep eerst aan.');
+  return groupId;
 }
 
 function saveState() {
@@ -188,7 +203,7 @@ function countDescendants(node) {
   return node.children.reduce((count, child) => count + 1 + countDescendants(child), 0);
 }
 
-function createNode({ title, length, parentId }) {
+function createNode({ title, length, parentId, groupId }) {
   const normalizedTitle = String(title || '').trim();
   if (!normalizedTitle) {
     const error = new Error('Geef een titel op.');
@@ -205,6 +220,8 @@ function createNode({ title, length, parentId }) {
   const siblings = state.nodes.filter((node) => node.parentId === (parentId || null));
   const node = {
     id: crypto.randomUUID(),
+    groupId: parentId ? null : validateGroup(groupId),
+    stoppedPage: null,
     parentId: parentId || null,
     title: normalizedTitle,
     length: toLength(length),
@@ -227,6 +244,9 @@ function updateNode(id, payload) {
     throw error;
   }
 
+  const groupId = payload.groupId !== undefined ? validateGroup(payload.groupId) : node.groupId;
+  const stoppedPage = payload.stoppedPage !== undefined ? validatePage(payload.stoppedPage) : node.stoppedPage;
+  if (node.parentId && payload.groupId) throw new Error('Alleen vakken/projecten kunnen in een groep.');
   if (payload.title !== undefined) {
     const title = String(payload.title || '').trim();
     if (!title) {
@@ -241,6 +261,8 @@ function updateNode(id, payload) {
     node.length = toLength(payload.length);
   }
 
+  node.groupId = groupId;
+  node.stoppedPage = stoppedPage;
   node.updatedAt = now();
   saveState();
   return node;
@@ -307,6 +329,10 @@ function importStateFromPayload(payload) {
       parent = normalizedNodes.find(item => item.id === parent).parentId;
     }
   }
+  const groups = payload.groups === undefined ? state.groups : payload.groups;
+  if (!Array.isArray(groups) || groups.some(g => !g || typeof g.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(g.id) || typeof g.title !== 'string' || !g.title.trim()) || new Set(groups.map(g => g.id)).size !== groups.length) throw new Error('Ongeldige groepen.');
+  if (normalizedNodes.some(n => n.groupId && (n.parentId || !groups.some(g => g.id === n.groupId)))) throw new Error('Ongeldige groepsindeling.');
+  state.groups = groups.map(g => ({ id: g.id, title: g.title.trim() }));
   state.nodes = normalizedNodes;
   saveState();
 
@@ -333,6 +359,8 @@ const database = loadState();
 const state = {
   get nodes() { return userContext.getStore().nodes; },
   set nodes(nodes) { userContext.getStore().nodes = nodes; },
+  get groups() { return userContext.getStore().groups || []; },
+  set groups(groups) { userContext.getStore().groups = groups; },
 };
 require('./auth')(app, database, saveState, userContext);
 
@@ -342,7 +370,26 @@ app.get('/api/tree', (req, res) => {
   res.json({
     roots: cloneTreeWithLockedFlags(roots),
     summary,
+    groups: state.groups,
   });
+});
+
+app.post('/api/groups', (req, res) => {
+  const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
+  if (!title || title.length > 80) return res.status(400).json({ error: 'Geef een groepsnaam van 1-80 tekens op.' });
+  if (state.groups.some(g => g.title.toLowerCase() === title.toLowerCase())) return res.status(409).json({ error: 'Deze groep bestaat al.' });
+  const group = { id: crypto.randomUUID(), title };
+  state.groups = [...state.groups, group];
+  saveState();
+  res.status(201).json(group);
+});
+
+app.delete('/api/groups/:id', (req, res) => {
+  if (!state.groups.some(g => g.id === req.params.id)) return res.status(404).json({ error: 'Groep niet gevonden.' });
+  state.groups = state.groups.filter(g => g.id !== req.params.id);
+  state.nodes.forEach(n => { if (n.groupId === req.params.id) n.groupId = null; });
+  saveState();
+  res.json({ ok: true });
 });
 
 app.post('/api/nodes', (req, res) => {
@@ -394,6 +441,7 @@ app.get('/api/export', (req, res) => {
     version: 1,
     exportedAt: now(),
     nodes: state.nodes,
+    groups: state.groups,
   });
 });
 

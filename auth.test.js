@@ -31,6 +31,16 @@ test('accounts isolate trees and persist across restart', async () => {
     assert.ok(fs.existsSync(path.join(dir, 'before-accounts.json')));
     const b = await request('auth/register', null, 'POST', { username: 'bob', password: 'other-test-password' });
     assert.equal((await request('tree', b.cookie)).body.roots.length, 0);
+    const group = await request('groups', a.cookie, 'POST', { title: 'School' });
+    assert.equal(group.status, 201);
+    assert.equal((await request('nodes/legacy', a.cookie, 'PATCH', { groupId: group.body.id, stoppedPage: 7 })).status, 200);
+    assert.equal((await request('tree', b.cookie)).body.groups.length, 0);
+    assert.equal((await request('nodes', b.cookie, 'POST', { title: 'Other', groupId: group.body.id })).status, 400);
+    assert.equal((await request('nodes/legacy', a.cookie, 'PATCH', { stoppedPage: -1 })).status, 400);
+    const backup = (await request('export', a.cookie)).body;
+    assert.equal(backup.groups[0].title, 'School');
+    assert.equal(backup.nodes[0].stoppedPage, 7);
+    assert.equal((await request('import', a.cookie, 'POST', backup)).status, 200);
     assert.equal((await request('nodes/legacy', b.cookie, 'PATCH', { title: 'Stolen' })).status, 404);
     assert.equal((await request('nodes', b.cookie, 'POST', { title: 'Child', parentId: 'legacy' })).status, 404);
     assert.equal((await request('export', b.cookie)).body.nodes.length, 0);
@@ -41,6 +51,10 @@ test('accounts isolate trees and persist across restart', async () => {
     await stop();
     await start();
     assert.equal((await request('tree', a.cookie)).body.roots[0].title, 'Bestaand');
+    assert.equal((await request('tree', a.cookie)).body.roots[0].stoppedPage, 7);
+    assert.equal((await request('tree', a.cookie)).body.groups[0].title, 'School');
+    assert.equal((await request(`groups/${group.body.id}`, a.cookie, 'DELETE', {})).status, 200);
+    assert.equal((await request('tree', a.cookie)).body.roots[0].groupId, null);
     assert.equal((await request('auth/login', null, 'POST', { username: 'alice', password: 'long-test-password' })).status, 200);
     await request('auth/logout', a.cookie, 'POST', {});
     assert.equal((await request('tree', a.cookie)).status, 401);

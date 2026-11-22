@@ -46,9 +46,13 @@
           </button>
         </div>
 
+        <button id="home-btn" class="ghost tiny-btn" type="button">Alle vakken en projecten</button>
         <section class="sidebar-card">
-          <div class="section-label">Overzicht</div>
-          <div id="global-summary" class="summary-block"></div>
+          <div class="section-label">Groepen</div>
+          <form id="group-form" class="stack-form">
+            <label><span>Nieuwe groep</span><input name="title" placeholder="Bijv. School of Werk" maxlength="80" required /></label>
+            <button class="ghost tiny-btn" type="submit">Groep aanmaken</button>
+          </form>
         </section>
 
         <section id="create-panel" class="sidebar-card create-panel hidden">
@@ -63,6 +67,7 @@
             Voeg hier een nieuw project, vak of hoofdstuk toe zonder dat het permanent ruimte inneemt.
           </p>
           <form id="root-form" class="stack-form">
+            <label><span>Groep</span><select name="groupId" id="new-root-group"></select></label>
             <label>
               <span>Titel</span>
               <input name="title" type="text" placeholder="Discrete algebra examen" required />
@@ -74,7 +79,7 @@
             <button class="primary" type="submit">Project / vak toevoegen</button>
           </form>
           <div class="helper-text" style="margin-top: 12px;">
-            Sla op in je browser en in Docker volume.
+            Je wijzigingen worden automatisch opgeslagen.
           </div>
         </section>
 
@@ -126,7 +131,13 @@
         </header>
 
         <section class="content-grid">
-          <section class="panel tree-panel">
+          <section id="selection-panel" class="panel">
+            <div class="section-label">Jouw overzicht</div>
+            <h2>Kies een vak of project</h2>
+            <p class="helper-text">Open een groep of ga meteen verder met een los project.</p>
+            <div id="project-selection"></div>
+          </section>
+          <section id="tree-panel" class="panel tree-panel hidden">
             <div class="panel-header">
               <div>
                 <div class="section-label">Boom</div>

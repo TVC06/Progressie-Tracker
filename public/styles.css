@@ -31,6 +31,35 @@
 .auth-panel .ghost { padding: 12px; }
 #auth-error { color: var(--danger); }
 
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg-2);
+  color: var(--text);
+  font: inherit;
+}
+.project-group {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+  background: rgba(123, 224, 167, 0.04);
+}
+.project-group summary { cursor: pointer; font-size: 1.2rem; font-weight: 600; }
+.project-group > button { margin-top: 16px; }
+.project-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; margin-top: 18px; }
+.selection-card { min-width: 0; }
+.group-assignment { display: grid; gap: 6px; margin-top: 10px; color: var(--muted); font-size: 0.85rem; }
+.bookmark-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; padding: 12px; background: rgba(244, 184, 106, 0.06); border-radius: 12px; }
+.bookmark-form label { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.bookmark-form input { width: 180px; }
+@media (max-width: 720px) {
+  .node-header { grid-template-columns: auto auto minmax(0, 1fr); }
+  .node-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
 * {
   box-sizing: border-box;
 }

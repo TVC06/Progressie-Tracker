@@ -31,6 +31,7 @@ async function bootstrap() {
 }
 
 async function showAccount(user) {
+  document.getElementById('project-selection').innerHTML = '';
   state.user = user;
   state.data = { roots: [], summary: {} };
   state.ui.selectedRootId = null;
@@ -100,7 +101,7 @@ function cacheElements() {
 function loadUiState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    state.ui.selectedRootId = saved.selectedRootId || null;
+    state.ui.selectedRootId = null;
     state.ui.collapsedIds = Array.isArray(saved.collapsedIds) ? saved.collapsedIds : [];
     state.ui.createPanelOpen = Boolean(saved.createPanelOpen);
   } catch {
@@ -122,6 +123,31 @@ function saveUiState() {
 }
 
 function bindEvents() {
+  document.getElementById('home-btn').addEventListener('click', () => {
+    state.ui.selectedRootId = null;
+    render();
+  });
+  document.getElementById('group-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const response = await fetch('/api/groups', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(event.target))) });
+      await handleResponse(response);
+      event.target.reset();
+      await loadData();
+    } catch (error) { console.error(error); }
+  });
+  document.addEventListener('change', async event => {
+    if (!event.target.matches('[data-project-group]')) return;
+    try { await updateNode(event.target.dataset.projectGroup, { groupId: event.target.value || null }); }
+    catch (error) { console.error(error); }
+  });
+  document.addEventListener('submit', async event => {
+    const form = event.target.closest('[data-bookmark]');
+    if (!form) return;
+    event.preventDefault();
+    try { await updateNode(form.dataset.bookmark, { stoppedPage: new FormData(form).get('stoppedPage') }); }
+    catch (error) { console.error(error); }
+  });
   els.rootForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const formData = new FormData(els.rootForm);
@@ -129,6 +155,7 @@ function bindEvents() {
       title: formData.get('title'),
       length: formData.get('length'),
       parentId: null,
+      groupId: formData.get('groupId'),
     });
     els.rootForm.reset();
   });
@@ -156,6 +183,13 @@ function bindEvents() {
     }
 
     const { action, id } = actionButton.dataset;
+    if (action === 'delete-group') {
+      if (!confirm('Groep verwijderen? De projecten blijven bewaard zonder groep.')) return;
+      const response = await fetch(`/api/groups/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      await handleResponse(response);
+      await loadData();
+      return;
+    }
 
     if (action === 'toggle-collapse') {
       toggleCollapsed(id);
@@ -220,7 +254,7 @@ async function loadData() {
   state.data = await response.json();
 
   if (!state.ui.selectedRootId || !state.data.roots.some((root) => root.id === state.ui.selectedRootId)) {
-    state.ui.selectedRootId = state.data.roots[0]?.id || null;
+    state.ui.selectedRootId = null;
     saveUiState();
   }
 
@@ -245,24 +279,13 @@ function render() {
   renderSidebar(roots);
   renderSelectedRoot(roots);
   renderCreatePanel();
+  renderSelection(roots);
 }
 
 function renderGlobalSummary(summary) {
   els.heroProgressValue.textContent = `${summary.progress || 0}%`;
   els.heroNodeCount.textContent = String(summary.nodeCount || 0);
   els.heroRootCount.textContent = String(summary.rootCount || 0);
-  els.globalSummary.innerHTML = `
-    <div class="summary-card">
-      <div class="summary-top">
-        <div>
-          <div class="summary-value">${formatPages(summary.completedLength)} / ${formatPages(summary.totalLength)} p</div>
-          <div class="summary-label">totaal afgerond</div>
-        </div>
-        <div class="summary-value">${summary.progress || 0}%</div>
-      </div>
-      <div class="progress"><span style="width:${summary.progress || 0}%"></span></div>
-    </div>
-  `;
 }
 
 function renderSidebar(roots) {
@@ -344,6 +367,36 @@ function renderSelectedRoot(roots) {
   els.treeRoot.innerHTML = renderNode(selected, 0, false);
 }
 
+function groupOptions(selected = '') {
+  return `<option value="">Zonder groep</option>` + (state.data.groups || []).map(g => `<option value="${escapeAttribute(g.id)}" ${selected === g.id ? 'selected' : ''}>${escapeHtml(g.title)}</option>`).join('');
+}
+
+function renderSelection(roots) {
+  const selection = document.getElementById('project-selection');
+  const openGroups = new Set([...selection.querySelectorAll('details[open]')].map(el => el.dataset.group));
+  document.getElementById('selection-panel').classList.toggle('hidden', Boolean(state.ui.selectedRootId));
+  document.getElementById('tree-panel').classList.toggle('hidden', !state.ui.selectedRootId);
+  const select = document.getElementById('new-root-group');
+  const current = select.value;
+  select.innerHTML = groupOptions(current);
+  const card = root => `<article class="selection-card">
+    <button type="button" class="root-item" data-root-id="${escapeAttribute(root.id)}">
+      <div class="root-title">${escapeHtml(root.title)}</div>
+      <div class="root-stats"><span>${root.progress}% afgerond</span><span>${formatPages(root.totalLength)} p</span>${root.stoppedPage ? `<span>Gestopt op pagina ${root.stoppedPage}</span>` : ''}</div>
+      <div class="progress"><span style="width:${root.progress}%"></span></div>
+    </button>
+    <label class="group-assignment">Groep<select aria-label="Groep voor ${escapeAttribute(root.title)}" data-project-group="${escapeAttribute(root.id)}">${groupOptions(root.groupId)}</select></label>
+  </article>`;
+  selection.innerHTML = (state.data.groups || []).map(group => {
+    const projects = roots.filter(r => r.groupId === group.id);
+    return `<details class="project-group" data-group="${escapeAttribute(group.id)}" ${openGroups.has(group.id) ? 'open' : ''}>
+      <summary>${escapeHtml(group.title)} <span class="helper-text">(${projects.length})</span></summary>
+      <div class="project-cards">${projects.map(card).join('') || '<p class="helper-text">Nog geen projecten in deze groep. Kies een groep bij een project.</p>'}</div>
+      <button class="tiny-btn danger" data-action="delete-group" data-id="${escapeAttribute(group.id)}" type="button">Groep verwijderen</button>
+    </details>`;
+  }).join('') + `<div class="project-cards ungrouped-projects">${roots.filter(r => !r.groupId).map(card).join('')}</div>` + (!roots.length ? '<p class="empty-state">Maak links je eerste vak of project aan.</p>' : '');
+}
+
 function renderNode(node, depth, locked) {
   const hasChildren = node.children.length > 0;
   const collapsed = state.ui.collapsedIds.includes(node.id);
@@ -381,6 +434,11 @@ function renderNode(node, depth, locked) {
         </div>
 
         ${state.ui.editingNodeId === node.id ? renderEditForm(node) : ''}
+        <form class="bookmark-form" data-bookmark="${escapeAttribute(node.id)}">
+          <label>Gestopt op pagina <input aria-label="Gestopt op pagina voor ${escapeAttribute(node.title)}" name="stoppedPage" type="number" min="1" step="1" value="${node.stoppedPage || ''}" placeholder="Nog niet ingesteld" /></label>
+          <button class="tiny-btn" type="submit">Bewaren</button>
+          <span class="helper-text">${node.stoppedPage ? `Bladwijzer: pagina ${node.stoppedPage}` : 'Leeg bewaren om te wissen'}</span>
+        </form>
         ${state.ui.addingChildNodeId === node.id ? renderChildForm(node) : ''}
 
         ${hasChildren && !collapsed ? `<div class="child-stack">${node.children.map((child) => renderNode(child, depth + 1, childLocked)).join('')}</div>` : ''}
@@ -420,11 +478,11 @@ function renderChildForm(node) {
   `;
 }
 
-async function createNode({ title, length, parentId }) {
+async function createNode({ title, length, parentId, groupId }) {
   const response = await fetch('/api/nodes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, length, parentId }),
+    body: JSON.stringify({ title, length, parentId, groupId }),
   });
   await handleResponse(response);
   await loadData();
@@ -457,6 +515,8 @@ async function deleteNode(id) {
 
   const response = await fetch(`/api/nodes/${id}`, {
     method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
   });
   await handleResponse(response);
   if (state.ui.editingNodeId === id) {
@@ -485,6 +545,7 @@ function exportJson() {
     version: 1,
     exportedAt: new Date().toISOString(),
     nodes: flattenRootsForExport(state.data.roots),
+    groups: state.data.groups || [],
   };
 
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -558,6 +619,8 @@ function flattenRootsForExport(roots) {
       parentId,
       title: node.title,
       length: node.length,
+      groupId: node.groupId || null,
+      stoppedPage: node.stoppedPage ?? null,
       completed: node.completed,
       order: node.order,
       createdAt: node.createdAt,

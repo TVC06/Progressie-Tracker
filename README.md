@@ -1,5 +1,9 @@
 # Progressie Boom
 
+Bij het openen kies je eerst een vak of project. Maak zelf groepen zoals School of Werk aan; deze staan op het selectiescherm standaard dichtgeklapt. Projecten zonder groep zijn direct zichtbaar. Met de groepskeuze bij een project kun je het verplaatsen. Een groep verwijderen behoudt de projecten zonder groep.
+
+Bij elk vak en onderdeel kun je onder 'Gestopt op pagina' een bladwijzer bewaren. Leeg bewaren wist de bladwijzer. Dit is een geheugensteuntje en verandert de afgevinkte voortgang niet. Groepen en bladwijzers blijven bewaard na herstart en gaan mee in JSON-backups.
+
 ## Accounts
 
 Maak via het beginscherm een account met gebruikersnaam en wachtwoord (minimaal 10 tekens). Elke gebruiker heeft eigen bomen, voortgang, import en export. Je blijft 30 dagen ingelogd; uitloggen trekt de sessie in.
