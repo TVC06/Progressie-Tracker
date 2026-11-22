@@ -16,11 +16,66 @@ const state = {
 
 const els = {};
 
-function bootstrap() {
+async function bootstrap() {
   cacheElements();
   loadUiState();
   bindEvents();
-  loadData();
+  bindAuth();
+  try {
+    const response = await fetch('/api/auth/me');
+    const { user } = await response.json();
+    await showAccount(user);
+  } catch {
+    document.getElementById('auth-error').textContent = 'Kan de server niet bereiken. Probeer opnieuw.';
+  }
+}
+
+async function showAccount(user) {
+  state.user = user;
+  state.data = { roots: [], summary: {} };
+  state.ui.selectedRootId = null;
+  state.ui.collapsedIds = [];
+  state.ui.editingNodeId = null;
+  state.ui.addingChildNodeId = null;
+  state.ui.createPanelOpen = false;
+  els.rootForm.reset();
+  els.importJsonInput.value = '';
+  render();
+  document.getElementById('auth-panel').classList.toggle('hidden', Boolean(user));
+  document.getElementById('authenticated-app').classList.toggle('hidden', !user);
+  document.getElementById('account-name').textContent = user ? `Ingelogd als ${user.username}` : '';
+  if (user) await loadData();
+}
+
+function bindAuth() {
+  const form = document.getElementById('auth-form');
+  const authenticate = async mode => {
+    if (!form.reportValidity()) return;
+    const buttons = form.querySelectorAll('button');
+    buttons.forEach(button => { button.disabled = true; });
+    const error = document.getElementById('auth-error');
+    error.textContent = '';
+    try {
+      const response = await fetch(`/api/auth/${mode}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new FormData(form))),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error);
+      form.reset();
+      await showAccount(body.user);
+    } catch (failure) { error.textContent = failure.message; }
+    finally { buttons.forEach(button => { button.disabled = false; }); }
+  };
+  form.addEventListener('submit', event => { event.preventDefault(); authenticate('login'); });
+  document.getElementById('register-btn').addEventListener('click', () => authenticate('register'));
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    try {
+      const response = await fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      if (!response.ok) throw new Error('Uitloggen is mislukt.');
+      await showAccount(null);
+    } catch (error) { alert(error.message); }
+  });
 }
 
 function cacheElements() {
@@ -161,6 +216,7 @@ function bindEvents() {
 
 async function loadData() {
   const response = await fetch('/api/tree', { cache: 'no-store' });
+  await handleResponse(response);
   state.data = await response.json();
 
   if (!state.ui.selectedRootId || !state.data.roots.some((root) => root.id === state.ui.selectedRootId)) {
@@ -475,6 +531,7 @@ async function handleResponse(response) {
   if (response.ok) {
     return;
   }
+  if (response.status === 401) await showAccount(null);
 
   let message = 'Er ging iets mis.';
   try {

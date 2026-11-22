@@ -16,7 +16,19 @@
   <body>
     <div class="bg-orb orb-a"></div>
     <div class="bg-orb orb-b"></div>
-    <div class="app-shell">
+    <section id="auth-panel" class="panel auth-panel">
+      <div class="eyebrow">Progressie Boom</div>
+      <h1>Jouw plannen. Jouw voortgang.</h1>
+      <p class="helper-text">Log in of maak een account voor je eigen progressiebomen.</p>
+      <form id="auth-form" class="stack-form">
+        <label><span>Gebruikersnaam</span><input name="username" autocomplete="username" required minlength="3" maxlength="40" pattern="[a-zA-Z0-9_.-]+" /></label>
+        <label><span>Wachtwoord</span><input name="password" type="password" autocomplete="current-password" required minlength="10" maxlength="256" /></label>
+        <p id="auth-error" role="alert" class="helper-text"></p>
+        <button class="primary" type="submit">Inloggen</button>
+        <button id="register-btn" class="ghost" type="button">Account aanmaken</button>
+      </form>
+    </section>
+    <div class="app-shell hidden" id="authenticated-app">
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">PB</div>
@@ -27,6 +39,8 @@
         </div>
 
         <div class="sidebar-actions">
+          <span id="account-name" class="helper-text"></span>
+          <button id="logout-btn" class="ghost tiny-btn" type="button">Uitloggen</button>
           <button id="create-toggle-btn" class="primary sidebar-action-btn" type="button">
             Nieuw project / vak
           </button>

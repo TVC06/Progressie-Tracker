@@ -19,6 +19,18 @@
   --radius-sm: 12px;
 }
 
+.auth-panel {
+  max-width: 480px;
+  margin: 8vh auto;
+  padding: 32px;
+  width: calc(100% - 32px);
+}
+
+.auth-panel h1 { font-family: 'Space Grotesk', sans-serif; }
+.auth-panel .stack-form { margin-top: 24px; }
+.auth-panel .ghost { padding: 12px; }
+#auth-error { color: var(--danger); }
+
 * {
   box-sizing: border-box;
 }

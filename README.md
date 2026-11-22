@@ -1,5 +1,15 @@
 # Progressie Boom
 
+## Accounts
+
+Maak via het beginscherm een account met gebruikersnaam en wachtwoord (minimaal 10 tekens). Elke gebruiker heeft eigen bomen, voortgang, import en export. Je blijft 30 dagen ingelogd; uitloggen trekt de sessie in.
+
+Bij de eerste registratie krijgt het eerste account de bestaande bomen. Maak dit account dus zelf aan voordat je de server deelt. De oorspronkelijke data wordt eerst gekopieerd naar `data/before-accounts.json`.
+
+Accounts, gehashte wachtwoorden en sessies worden samen met de bomen opgeslagen in `data/state.json`, ook buiten Docker. Bewaar de volledige datamap voor een serverbackup; JSON-export vanuit de app bevat alleen de bomen van de ingelogde gebruiker.
+
+Gebruik HTTPS voor een publiek bereikbare server en stel `COOKIE_SECURE=true` in de containeromgeving in. Lokaal via HTTP laat je deze instelling weg. Wachtwoordherstel en e-mailverificatie zijn niet ingebouwd.
+
 Een kleine webapp om projecten, vakken, hoofdstukken en subdelen in een boomstructuur bij te houden, met voortgang per niveau.
 
 De data wordt altijd opgeslagen in een lokaal JSON-bestand op de server. Dus ook zonder Docker blijft je data behouden na stoppen en opnieuw starten van de site.
