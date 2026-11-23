@@ -4,6 +4,7 @@ const scrypt = promisify(crypto.scrypt);
 
 module.exports = (app, database, save, context) => {
   const secure = process.env.COOKIE_SECURE === 'true';
+  const publicOrigin = process.env.PUBLIC_ORIGIN?.trim().replace(/\/+$/, '') || null;
   const cookie = (res, token, seconds) => res.setHeader('Set-Cookie',
     `pb_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${seconds}${secure ? '; Secure' : ''}`);
   const digest = token => crypto.createHash('sha256').update(token).digest('hex');
@@ -13,8 +14,9 @@ module.exports = (app, database, save, context) => {
   app.use('/api', (req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     if (!['GET', 'HEAD'].includes(req.method)) {
+      const expectedOrigin = publicOrigin || `${secure ? 'https' : req.protocol}://${req.headers.host}`;
       if (req.headers['sec-fetch-site'] === 'cross-site' ||
-          (req.headers.origin && req.headers.origin !== `${secure ? 'https' : req.protocol}://${req.headers.host}`)) {
+          (req.headers.origin && req.headers.origin !== expectedOrigin)) {
         return res.status(403).json({ error: 'Ongeldige herkomst.' });
       }
       if (!req.is('application/json')) return res.status(415).json({ error: 'JSON vereist.' });

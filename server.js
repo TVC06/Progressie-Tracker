@@ -367,6 +367,9 @@ function cloneTreeWithLockedFlags(nodes, ancestorLocked = false) {
 }
 
 const app = express();
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(PUBLIC_DIR));
 

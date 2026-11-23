@@ -36,6 +36,16 @@ Accounts, gehashte wachtwoorden en sessies worden samen met de bomen opgeslagen 
 
 Gebruik HTTPS voor een publiek bereikbare server en stel `COOKIE_SECURE=true` in de containeromgeving in. Lokaal via HTTP laat je deze instelling weg. Wachtwoordherstel en e-mailverificatie zijn niet ingebouwd.
 
+Bij een HTTPS-reverse proxy (Nginx, Caddy, Traefik) kan Docker Compose via een `.env`-bestand zo worden ingesteld:
+
+```dotenv
+COOKIE_SECURE=true
+TRUST_PROXY=true
+PUBLIC_ORIGIN=https://voorbeeld.nl
+```
+
+Vervang `voorbeeld.nl` door het publieke domein zonder pad. Start daarna Docker opnieuw met `docker compose up -d --build`. Zonder reverse proxy maar rechtstreeks via HTTPS kan `PUBLIC_ORIGIN` ook worden gebruikt; laat `TRUST_PROXY=true` weg als er geen vertrouwde proxy tussen de browser en Node staat.
+
 Een kleine webapp om projecten, vakken, hoofdstukken en subdelen in een boomstructuur bij te houden, met voortgang per niveau.
 
 De data wordt altijd opgeslagen in een lokaal JSON-bestand op de server. Dus ook zonder Docker blijft je data behouden na stoppen en opnieuw starten van de site.

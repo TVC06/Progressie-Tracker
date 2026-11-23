@@ -8,5 +8,8 @@ services:
     environment:
       - PORT=3002
       - DATA_DIR=/app/data
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - TRUST_PROXY=${TRUST_PROXY:-false}
+      - PUBLIC_ORIGIN=${PUBLIC_ORIGIN:-}
     volumes:
       - ./data:/app/data
