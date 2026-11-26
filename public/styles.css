@@ -21,6 +21,24 @@
   margin-left: auto;
 }
 
+.tree-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tree-navigation [aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.admin-backup {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--accent);
+}
+
 :root {
   color-scheme: dark;
   --bg: #07111d;

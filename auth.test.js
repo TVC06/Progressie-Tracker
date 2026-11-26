@@ -30,6 +30,7 @@ test('accounts isolate trees and persist across restart', async () => {
     assert.equal(a.status, 200);
     assert.equal(a.body.user.isAdmin, false);
     assert.equal((await request('admin/users', a.cookie)).status, 403);
+    assert.equal((await request('admin/backup', a.cookie)).status, 403);
     assert.equal((await request('admin/users')).status, 401);
     assert.equal((await request('tree', a.cookie)).body.roots[0].id, 'legacy');
     assert.ok(fs.existsSync(path.join(dir, 'before-accounts.json')));
@@ -104,6 +105,10 @@ test('accounts isolate trees and persist across restart', async () => {
     assert.equal((await request('auth/me', admin.cookie)).body.user.isAdmin, true);
     await request('nodes', b.cookie, 'POST', { title: 'Bob project', length: 10 });
     const accounts = await request('admin/users', admin.cookie);
+    const adminBackup = await request('admin/backup', admin.cookie);
+    assert.equal(adminBackup.status, 200);
+    assert.deepEqual(Object.keys(adminBackup.body.accounts[0]).sort(), ['groups', 'nodes', 'username']);
+    assert.equal(adminBackup.body.accounts.find(user => user.username === 'bob').nodes[0].title, 'Bob project');
     assert.equal(accounts.status, 200);
     assert.equal(accounts.body.users.length, 3);
     assert.equal(accounts.body.users.find(u => u.id === b.body.user.id).projectCount, 1);

@@ -286,6 +286,7 @@ function bindEvents() {
     if (rootButton) {
       state.ui.adminOpen = false;
       state.ui.selectedRootId = rootButton.dataset.rootId;
+      state.ui.activeTreeId = null;
       state.ui.editingNodeId = null;
       state.ui.addingChildNodeId = null;
       saveUiState();
@@ -299,6 +300,28 @@ function bindEvents() {
     }
 
     const { action, id } = actionButton.dataset;
+    if (action === 'switch-tree') {
+      state.ui.activeTreeId = id;
+      render();
+      return;
+    }
+    if (action === 'toggle-tree-layout') {
+      state.ui.showAllTrees = !state.ui.showAllTrees;
+      render();
+      return;
+    }
+    if (action === 'add-tree') {
+      const title = window.prompt('Naam van de nieuwe boom')?.trim();
+      if (!title) return;
+      actionButton.disabled = true;
+      try {
+        const created = await createNode({ title, parentId: id, separateTree: true });
+        state.ui.activeTreeId = created.id;
+        render();
+      } catch (error) { console.error(error); }
+      finally { actionButton.disabled = false; }
+      return;
+    }
     if (['add-note', 'edit-note', 'delete-note'].includes(action)) {
       await changeNote(action, id, Number(actionButton.dataset.index));
       return;
@@ -463,7 +486,19 @@ function renderSelectedRoot(roots) {
     </div>
     <div class="progress" style="margin-top:14px"><span style="width:${selected.progress}%"></span></div>
   `;
-  els.treeRoot.innerHTML = renderNode(selected, 0, false);
+  const separate = selected.children.filter(child => child.separateTree);
+  const general = { ...selected, children: selected.children.filter(child => !child.separateTree) };
+  const trees = separate.length ? [general, ...separate] : [general];
+  const active = trees.find(tree => tree.id === state.ui.activeTreeId) || trees[0];
+  const showAll = Boolean(state.ui.showAllTrees);
+  document.getElementById('tree-navigation').innerHTML = `
+    <button class="tiny-btn" type="button" data-action="add-tree" data-id="${selected.id}">+ Boom</button>
+    ${separate.length ? `<button class="tiny-btn" type="button" data-action="toggle-tree-layout" aria-pressed="${showAll}">Alle bomen onder elkaar</button>
+    ${showAll ? '' : trees.map(tree => `<button class="tiny-btn" type="button" data-action="switch-tree" data-id="${tree.id}" aria-pressed="${tree.id === active.id}">${tree.id === selected.id ? 'Algemeen' : escapeHtml(tree.title)}</button>`).join('')}` : ''}
+  `;
+  els.treeRoot.innerHTML = (showAll ? trees : [active]).map(tree =>
+    renderNode(tree, 0, tree.id !== selected.id && selected.completed),
+  ).join('');
 }
 
 function groupOptions(selected = '') {
@@ -623,8 +658,8 @@ function renderNode(node, depth, locked) {
             <button class="tiny-btn" data-action="start-child" data-id="${node.id}" ${actionsDisabled} type="button">+ deel</button>
             <button class="tiny-btn" data-action="add-note" data-id="${node.id}" type="button">+ opmerking</button>
             ${!node.completed && !locked ? `<button class="tiny-btn" data-action="bookmark" data-id="${node.id}" type="button" aria-expanded="${state.ui.bookmarkNodeId === node.id}" aria-controls="bookmark-${node.id}">Gestopt op</button>` : ''}
-            <button class="tiny-btn" data-action="start-edit" data-id="${node.id}" ${actionsDisabled} type="button">wijzig</button>
-            <button class="tiny-btn danger" data-action="delete-node" data-id="${node.id}" ${actionsDisabled} type="button">verwijder</button>
+            <button class="tiny-btn" data-action="start-edit" data-id="${node.id}" ${node.separateTree ? '' : actionsDisabled} type="button">${node.separateTree ? 'Boom wijzigen' : 'wijzig'}</button>
+            <button class="tiny-btn danger" data-action="delete-node" data-id="${node.id}" ${node.separateTree ? '' : actionsDisabled} type="button">${node.separateTree ? 'Boom verwijderen' : 'verwijder'}</button>
           </div>
         </div>
 
@@ -710,14 +745,16 @@ function renderChildForm(node) {
   `;
 }
 
-async function createNode({ title, length, parentId, groupId, unit }) {
+async function createNode({ title, length, parentId, groupId, unit, separateTree }) {
   const response = await fetch('/api/nodes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, length, parentId, groupId, unit }),
+    body: JSON.stringify({ title, length, parentId, groupId, unit, separateTree }),
   });
   await handleResponse(response);
+  const created = await response.json();
   await loadData();
+  return created;
 }
 
 async function updateNode(id, payload) {
@@ -850,6 +887,7 @@ function flattenRootsForExport(roots) {
       id: node.id,
       parentId,
       title: node.title,
+      separateTree: node.separateTree === true,
       length: node.length,
       unit: node.parentId ? undefined : unitOf(node),
       groupId: node.groupId || null,

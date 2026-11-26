@@ -3,6 +3,7 @@ const crypto = require('crypto');
 module.exports = (app, state, buildForest, save) => {
   const portable = (node, progress) => ({
     title: node.title,
+    ...(node.separateTree ? { separateTree: true } : {}),
     length: node.length,
     unit: node.unit || 'paginas',
     ...(progress ? { completed: Boolean(node.completed), stoppedPage: node.stoppedPage ?? null } : {}),
@@ -66,6 +67,7 @@ module.exports = (app, state, buildForest, save) => {
         const stoppedPage = raw.stoppedPage == null ? null : amount(raw.stoppedPage);
         const node = {
           id: crypto.randomUUID(), parentId, title: title(raw.title), length: amount(raw.length),
+          separateTree: depth === 1 && raw.separateTree === true,
           unit: unit.trim(), groupId: parentId ? null : groupId,
           completed: keepProgress && Boolean(raw.completed), stoppedPage: keepProgress ? stoppedPage : null,
           order, createdAt: timestamp, updatedAt: timestamp,

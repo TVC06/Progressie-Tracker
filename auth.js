@@ -90,6 +90,18 @@ module.exports = (app, database, save, context) => {
     next();
   });
 
+  app.get('/api/admin/backup', (req, res) => {
+    res.attachment('progresset-alle-accounts.json').json({
+      app: 'ProgresseT',
+      version: 1,
+      type: 'all-trees',
+      exportedAt: new Date().toISOString(),
+      accounts: database.users.map(({ username, nodes, groups }) => ({
+        username, nodes: nodes || [], groups: groups || [],
+      })),
+    });
+  });
+
   app.get('/api/admin/users', (req, res) => {
     res.json({ users: database.users.map(user => ({
       ...publicUser(user),

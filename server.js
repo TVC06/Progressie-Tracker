@@ -69,6 +69,7 @@ function normalizeNode(node) {
     length,
     unit: validateUnit(node.unit),
     groupId: typeof node.groupId === 'string' ? node.groupId : null,
+    separateTree: node.separateTree === true,
     stoppedPage: node.stoppedPage == null ? null : validatePage(node.stoppedPage),
     notes: validateNotes(node.notes),
     completed: Boolean(node.completed),
@@ -224,7 +225,7 @@ function countDescendants(node) {
   return node.children.reduce((count, child) => count + 1 + countDescendants(child), 0);
 }
 
-function createNode({ title, length, parentId, groupId, unit }) {
+function createNode({ title, length, parentId, groupId, unit, separateTree }) {
   const normalizedTitle = String(title || '').trim();
   if (!normalizedTitle) {
     const error = new Error('Geef een titel op.');
@@ -239,10 +240,14 @@ function createNode({ title, length, parentId, groupId, unit }) {
   }
 
   const siblings = state.nodes.filter((node) => node.parentId === (parentId || null));
+  if (separateTree === true && (!parentId || findNode(parentId).parentId)) {
+    throw new Error('Voeg een aparte boom rechtstreeks aan een vak toe.');
+  }
   const node = {
     id: crypto.randomUUID(),
     groupId: parentId ? null : validateGroup(groupId),
     stoppedPage: null,
+    separateTree: separateTree === true,
     unit: parentId ? undefined : validateUnit(unit),
     parentId: parentId || null,
     title: normalizedTitle,
