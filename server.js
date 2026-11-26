@@ -70,11 +70,19 @@ function normalizeNode(node) {
     unit: validateUnit(node.unit),
     groupId: typeof node.groupId === 'string' ? node.groupId : null,
     stoppedPage: node.stoppedPage == null ? null : validatePage(node.stoppedPage),
+    notes: validateNotes(node.notes),
     completed: Boolean(node.completed),
     order,
     createdAt: typeof node.createdAt === 'string' ? node.createdAt : now(),
     updatedAt: typeof node.updatedAt === 'string' ? node.updatedAt : now(),
   };
+}
+
+function validateNotes(notes = []) {
+  if (!Array.isArray(notes) || notes.length > 100 || notes.some(note => typeof note !== 'string' || !note.trim() || note.length > 2000)) {
+    throw new Error('Gebruik maximaal 100 opmerkingen van maximaal 2000 tekens.');
+  }
+  return notes.map(note => note.trim());
 }
 
 function toLength(value) {
@@ -260,6 +268,7 @@ function updateNode(id, payload) {
 
   const groupId = payload.groupId !== undefined ? validateGroup(payload.groupId) : node.groupId;
   const stoppedPage = payload.stoppedPage !== undefined ? validatePage(payload.stoppedPage) : node.stoppedPage;
+  const notes = validateNotes(payload.notes === undefined ? node.notes : payload.notes);
   const unit = payload.unit !== undefined ? validateUnit(payload.unit) : node.unit;
   if (node.parentId && payload.unit !== undefined) throw new Error('De eenheid stel je in bij het project.');
   const length = payload.length !== undefined ? toLength(payload.length) : node.length;
@@ -279,6 +288,7 @@ function updateNode(id, payload) {
 
   node.groupId = groupId;
   node.stoppedPage = stoppedPage;
+  node.notes = notes;
   node.updatedAt = now();
   saveState();
   return node;

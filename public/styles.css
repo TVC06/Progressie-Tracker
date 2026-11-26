@@ -1,3 +1,26 @@
+.node-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 12px;
+  margin-top: 10px;
+}
+
+.node-note p {
+  flex: 1 1 120px;
+  min-width: 0;
+  margin: 4px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.node-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
 :root {
   color-scheme: dark;
   --bg: #07111d;

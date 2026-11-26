@@ -299,6 +299,10 @@ function bindEvents() {
     }
 
     const { action, id } = actionButton.dataset;
+    if (['add-note', 'edit-note', 'delete-note'].includes(action)) {
+      await changeNote(action, id, Number(actionButton.dataset.index));
+      return;
+    }
     if (action === 'bookmark') {
       state.ui.bookmarkNodeId = state.ui.bookmarkNodeId === id ? null : id;
       render();
@@ -617,12 +621,14 @@ function renderNode(node, depth, locked) {
           </div>
           <div class="node-actions">
             <button class="tiny-btn" data-action="start-child" data-id="${node.id}" ${actionsDisabled} type="button">+ deel</button>
+            <button class="tiny-btn" data-action="add-note" data-id="${node.id}" type="button">+ opmerking</button>
             ${!node.completed && !locked ? `<button class="tiny-btn" data-action="bookmark" data-id="${node.id}" type="button" aria-expanded="${state.ui.bookmarkNodeId === node.id}" aria-controls="bookmark-${node.id}">Gestopt op</button>` : ''}
             <button class="tiny-btn" data-action="start-edit" data-id="${node.id}" ${actionsDisabled} type="button">wijzig</button>
             <button class="tiny-btn danger" data-action="delete-node" data-id="${node.id}" ${actionsDisabled} type="button">verwijder</button>
           </div>
         </div>
 
+        ${renderNotes(node)}
         ${state.ui.editingNodeId === node.id ? renderEditForm(node) : ''}
         ${state.ui.bookmarkNodeId === node.id && !node.completed && !locked ? `<form class="bookmark-form" id="bookmark-${node.id}" data-bookmark="${escapeAttribute(node.id)}">
           <label>${unitOf(node) === 'paginas' ? 'Gestopt op pagina' : `Gestopt bij (${escapeHtml(unitOf(node))})`} <input aria-label="Stoppositie voor ${escapeAttribute(node.title)}" name="stoppedPage" type="number" min="0" step="any" value="${node.stoppedPage ?? ''}" placeholder="Nog niet ingesteld" /></label>
@@ -638,6 +644,40 @@ function renderNode(node, depth, locked) {
       </article>
     </div>
   `;
+}
+
+function renderNotes(node) {
+  return (node.notes || []).map((note, index) => `<div class="node-note">
+    <p>${escapeHtml(note)}</p>
+    <div class="node-note-actions">
+      <button class="tiny-btn" type="button" data-action="edit-note" data-id="${node.id}" data-index="${index}">Bewerk</button>
+      <button class="tiny-btn danger" type="button" data-action="delete-note" data-id="${node.id}" data-index="${index}">Verwijder</button>
+    </div>
+  </div>`).join('');
+}
+
+async function changeNote(action, id, index) {
+  const queue = [...state.data.roots];
+  while (queue.length) {
+    const node = queue.pop();
+    if (node.id !== id) {
+      for (const child of node.children) queue.push(child);
+      continue;
+    }
+    const notes = [...(node.notes || [])];
+    if (action === 'delete-note') {
+      if (!window.confirm('Deze opmerking verwijderen?')) return;
+      notes.splice(index, 1);
+    } else {
+      const note = window.prompt(action === 'add-note' ? 'Opmerking toevoegen' : 'Opmerking bewerken', notes[index] || '')?.trim();
+      if (!note) return;
+      if (action === 'add-note') notes.push(note);
+      else notes[index] = note;
+    }
+    try { await updateNode(id, { notes }); }
+    catch (error) { console.error(error); }
+    return;
+  }
 }
 
 function renderEditForm(node) {
@@ -814,6 +854,7 @@ function flattenRootsForExport(roots) {
       unit: node.parentId ? undefined : unitOf(node),
       groupId: node.groupId || null,
       stoppedPage: node.stoppedPage ?? null,
+      notes: node.notes || [],
       completed: node.completed,
       order: node.order,
       createdAt: node.createdAt,
