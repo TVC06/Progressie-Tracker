@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>ProgresseT</title>
+  <rect width="64" height="64" rx="17" fill="#102131"/>
+  <rect x="1" y="1" width="62" height="62" rx="16" fill="none" stroke="#355668" stroke-width="2"/>
+  <path d="M9 46V18h9a7 7 0 0 1 0 14H9M38 18h17m-8.5 0v28"
+        fill="none" stroke="#7594a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 53V31m0 12-10-9m10 1 10-9"
+        fill="none" stroke="#102131" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 53V31m0 12-10-9m10 1 10-9"
+        fill="none" stroke="#92efb7" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#92efb7" stroke="#102131" stroke-width="2">
+    <circle cx="32" cy="24" r="7"/>
+    <circle cx="21" cy="33" r="6"/>
+    <circle cx="43" cy="25" r="6"/>
+  </g>
+</svg>
