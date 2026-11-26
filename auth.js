@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const scrypt = promisify(crypto.scrypt);
 
-module.exports = (app, database, save, context) => {
+module.exports = (app, database, save, context, { buildForest, validateTreeBackup }) => {
   const secure = process.env.COOKIE_SECURE === 'true';
   const publicOrigin = process.env.PUBLIC_ORIGIN?.trim().replace(/\/+$/, '') || null;
   const cookie = (res, token, seconds) => res.setHeader('Set-Cookie',
@@ -100,6 +100,76 @@ module.exports = (app, database, save, context) => {
         username, nodes: nodes || [], groups: groups || [],
       })),
     });
+  });
+
+  app.get('/api/admin/users/:id/tree', (req, res) => {
+    const user = database.users.find(user => user.id === req.params.id);
+    if (!user) return res.status(404).json({ error: 'Account niet gevonden.' });
+    res.json({ ...context.run(user, buildForest), groups: user.groups || [] });
+  });
+
+  app.post('/api/admin/backup', (req, res) => {
+    const { mode, backup } = req.body || {};
+    const accounts = new Map();
+    try {
+      if (!['replace', 'merge'].includes(mode) || backup?.app !== 'ProgresseT' ||
+          backup.type !== 'all-trees' || backup.version !== 1 || !Array.isArray(backup.accounts)) {
+        throw new Error('Kies een geldige ProgresseT-beheerback-up en importmodus.');
+      }
+      for (const account of backup.accounts) {
+        if (typeof account?.username !== 'string' || !Array.isArray(account.nodes) || !Array.isArray(account.groups) ||
+            account.nodes.some(node => !node || typeof node.id !== 'string' || !node.id)) {
+          throw new Error('Ongeldige accountgegevens in de back-up.');
+        }
+        const username = account.username.trim().toLowerCase();
+        if (!username || accounts.has(username)) throw new Error('Ongeldige of dubbele gebruikersnaam in de back-up.');
+        accounts.set(username, validateTreeBackup(account));
+      }
+      const missingAccounts = [...accounts.keys()].filter(name => !database.users.some(user => user.username === name));
+      if (missingAccounts.length && mode === 'replace') {
+        throw new Error(`Deze accounts ontbreken: ${missingAccounts.join(', ')}. Maak ze aan voordat je volledig vervangt.`);
+      }
+      let projectCount = 0;
+      const users = database.users.map(user => {
+        const incoming = accounts.get(user.username);
+        if (mode === 'replace') {
+          const restored = incoming || { nodes: [], groups: [] };
+          projectCount += restored.nodes.filter(node => !node.parentId).length;
+          return { ...user, ...restored };
+        }
+        if (!incoming) return user;
+        const existingIds = new Set(user.nodes.map(node => node.id));
+        const children = new Map();
+        for (const node of incoming.nodes) {
+          if (!children.has(node.parentId)) children.set(node.parentId, []);
+          children.get(node.parentId).push(node);
+        }
+        const roots = (children.get(null) || []).filter(node => !existingIds.has(node.id));
+        const additions = [];
+        const groupIds = new Set();
+        for (const root of roots) {
+          if (root.groupId) groupIds.add(root.groupId);
+          const pending = [root];
+          while (pending.length) {
+            const node = pending.pop();
+            if (existingIds.has(node.id)) throw new Error('Een onderdeel-ID botst met een bestaand onderdeel.');
+            additions.push(node);
+            for (const child of children.get(node.id) || []) pending.push(child);
+          }
+        }
+        projectCount += roots.length;
+        const groups = user.groups || [];
+        return { ...user, nodes: [...user.nodes, ...additions],
+          groups: [...groups, ...incoming.groups.filter(group => groupIds.has(group.id) && !groups.some(existing => existing.id === group.id))] };
+      });
+      const previousUsers = database.users;
+      database.users = users;
+      try { save(); }
+      catch (error) { database.users = previousUsers; throw error; }
+      res.json({ projectCount, missingAccounts });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
   });
 
   app.get('/api/admin/users', (req, res) => {

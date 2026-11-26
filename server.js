@@ -332,6 +332,14 @@ function deleteNode(id) {
 }
 
 function importStateFromPayload(payload) {
+  const { nodes, groups } = validateTreeBackup(payload, state.groups);
+  state.nodes = nodes;
+  state.groups = groups;
+  saveState();
+  return nodes.length;
+}
+
+function validateTreeBackup(payload, defaultGroups = []) {
   const rawNodes = Array.isArray(payload?.nodes)
     ? payload.nodes
     : Array.isArray(payload?.roots)
@@ -360,14 +368,10 @@ function importStateFromPayload(payload) {
       parent = normalizedNodes.find(item => item.id === parent).parentId;
     }
   }
-  const groups = payload.groups === undefined ? state.groups : payload.groups;
+  const groups = payload.groups === undefined ? defaultGroups : payload.groups;
   if (!Array.isArray(groups) || groups.some(g => !g || typeof g.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(g.id) || typeof g.title !== 'string' || !g.title.trim()) || new Set(groups.map(g => g.id)).size !== groups.length) throw new Error('Ongeldige groepen.');
   if (normalizedNodes.some(n => n.groupId && (n.parentId || !groups.some(g => g.id === n.groupId)))) throw new Error('Ongeldige groepsindeling.');
-  state.groups = groups.map(g => ({ id: g.id, title: g.title.trim() }));
-  state.nodes = normalizedNodes;
-  saveState();
-
-  return normalizedNodes.length;
+  return { nodes: normalizedNodes, groups: groups.map(g => ({ id: g.id, title: g.title.trim() })) };
 }
 
 function cloneTreeWithLockedFlags(nodes, ancestorLocked = false) {
@@ -396,7 +400,7 @@ const state = {
   get groups() { return userContext.getStore().groups || []; },
   set groups(groups) { userContext.getStore().groups = groups; },
 };
-require('./auth')(app, database, saveState, userContext);
+require('./auth')(app, database, saveState, userContext, { buildForest, validateTreeBackup });
 require('./sharing')(app, state, buildForest, saveState);
 
 app.get('/api/tree', (req, res) => {

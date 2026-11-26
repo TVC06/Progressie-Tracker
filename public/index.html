@@ -133,6 +133,7 @@
             <p id="admin-status" role="status" class="helper-text"></p>
             <div id="admin-users" class="admin-users"></div>
             <a class="admin-backup" href="/api/admin/backup" download>Back-up van alle bomen downloaden</a>
+            <button id="admin-import-btn" class="tiny-btn" type="button">Beheerback-up importeren</button>
           </section>
           <section id="selection-panel" class="panel">
             <div class="section-label">Jouw overzicht</div>
@@ -163,6 +164,22 @@
         </section>
       </main>
     </div>
+    <dialog id="admin-import-dialog" class="settings-dialog">
+      <form method="dialog" class="panel-header">
+        <h2>Beheerback-up importeren</h2>
+        <button class="tiny-btn">Sluiten</button>
+      </form>
+      <form id="admin-import-form" class="stack-form">
+        <label><span>JSON-back-up</span><input type="file" name="backup" accept=".json,application/json" required /></label>
+        <label><span>Importmodus</span><select name="mode">
+          <option value="merge">Alleen ontbrekende vakken toevoegen</option>
+          <option value="replace">Alle bomen en groepen volledig vervangen</option>
+        </select></label>
+        <p class="helper-text">Volledig vervangen wist ook bomen en groepen van accounts die niet in de back-up staan. Accounts zelf blijven bestaan.</p>
+        <p id="admin-import-error" role="alert"></p>
+        <button class="primary" type="submit">Importeren</button>
+      </form>
+    </dialog>
     <dialog id="project-settings" class="settings-dialog">
       <div class="panel-header"><h2>Projectinstellingen</h2><button id="settings-close-btn" class="tiny-btn" type="button" aria-label="Instellingen sluiten">Sluiten</button></div>
       <form id="settings-form" class="stack-form">

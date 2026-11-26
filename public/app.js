@@ -39,6 +39,7 @@ async function showAccount(user) {
   document.getElementById('project-selection').innerHTML = '';
   els.rootList.innerHTML = '';
   closeSettings();
+  document.getElementById('admin-import-dialog').close();
   document.getElementById('password-dialog').close();
   document.getElementById('admin-users').innerHTML = '';
   document.getElementById('admin-status').textContent = '';
@@ -115,6 +116,52 @@ function cacheElements() {
 }
 
 function bindAdmin() {
+  const importDialog = document.getElementById('admin-import-dialog');
+  const importForm = document.getElementById('admin-import-form');
+  const importError = document.getElementById('admin-import-error');
+  document.getElementById('admin-import-btn').addEventListener('click', () => {
+    importForm.reset();
+    importError.textContent = '';
+    importDialog.showModal();
+  });
+  importForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const mode = importForm.elements.mode.value;
+    if (mode === 'replace' && !confirm('Alle huidige bomen en groepen vervangen door deze back-up?')) return;
+    const submit = importForm.querySelector('[type="submit"]');
+    submit.disabled = true;
+    importError.textContent = '';
+    try {
+      const backup = JSON.parse(await importForm.elements.backup.files[0].text());
+      const result = await transferResponse(await fetch('/api/admin/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, backup }),
+      }));
+      importDialog.close();
+      await loadData();
+      await loadAdminUsers();
+      const skipped = result.missingAccounts.length ? ` Overgeslagen accounts: ${result.missingAccounts.join(', ')}.` : '';
+      document.getElementById('admin-status').textContent = `${result.projectCount} vakken ${mode === 'replace' ? 'hersteld' : 'toegevoegd'}.${skipped}`;
+    } catch (error) { importError.textContent = error.message; }
+    finally { submit.disabled = false; }
+  });
+  document.getElementById('admin-users').addEventListener('toggle', async event => {
+    const details = event.target;
+    if (!details.matches('[data-admin-tree]') || !details.open || details.dataset.loaded) return;
+    details.dataset.loaded = 'true';
+    const content = details.querySelector('div');
+    try {
+      const { roots, groups } = await transferResponse(await fetch(`/api/admin/users/${details.dataset.adminTree}/tree`));
+      content.innerHTML = groups.map(group => `<details><summary>${escapeHtml(group.title)}</summary>
+        ${roots.filter(root => root.groupId === group.id).map(renderAdminTree).join('') || '<p>Geen vakken.</p>'}</details>`).join('') +
+        roots.filter(root => !groups.some(group => group.id === root.groupId)).map(renderAdminTree).join('');
+      if (!content.innerHTML) content.textContent = 'Geen vakken.';
+    } catch (error) {
+      delete details.dataset.loaded;
+      content.textContent = error.message;
+    }
+  }, true);
   document.getElementById('admin-btn').addEventListener('click', async () => {
     state.ui.adminOpen = true;
     render();
@@ -178,6 +225,12 @@ function bindAdmin() {
   });
 }
 
+function renderAdminTree(node) {
+  const label = `${escapeHtml(node.title)} <span class="helper-text">${node.progress}%</span>`;
+  if (!node.children.length) return `<div class="admin-tree-leaf">${label}</div>`;
+  return `<details><summary>${label}</summary><div>${node.children.map(renderAdminTree).join('')}</div></details>`;
+}
+
 async function loadAdminUsers() {
   if (!state.user?.isAdmin) return;
   const accountId = state.user.id;
@@ -189,7 +242,10 @@ async function loadAdminUsers() {
     const { users } = await response.json();
     if (state.user?.id !== accountId) return;
     document.getElementById('admin-users').innerHTML = users.map(user => `<article class="admin-account">
-      <div><strong>${escapeHtml(user.username)}</strong><div class="helper-text">${user.projectCount} projecten${user.isAdmin ? ' · Beheerder' : ''}</div></div>
+      <details class="admin-account-tree" data-admin-tree="${escapeAttribute(user.id)}">
+        <summary><strong>${escapeHtml(user.username)}</strong> <span class="helper-text">${user.projectCount} projecten${user.isAdmin ? ' · Beheerder' : ''}</span></summary>
+        <div>Laden...</div>
+      </details>
       <div class="admin-account-actions">
         <button type="button" class="tiny-btn" data-admin-action="password" data-user-id="${escapeAttribute(user.id)}" data-username="${escapeAttribute(user.username)}">Wachtwoord instellen</button>
         ${user.id !== accountId ? `<button type="button" class="tiny-btn danger" data-admin-action="delete" data-user-id="${escapeAttribute(user.id)}" data-username="${escapeAttribute(user.username)}">Account verwijderen</button>` : '<span class="helper-text">Je eigen account</span>'}

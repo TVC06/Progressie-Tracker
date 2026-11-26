@@ -60,6 +60,10 @@
   --radius-sm: 12px;
 }
 
+.admin-account-tree { flex: 1 1 240px; min-width: 0; overflow-wrap: anywhere; }
+.admin-account-tree summary { cursor: pointer; }
+.admin-account-tree details, .admin-tree-leaf { margin: 8px 0 0 12px; }
+
 .auth-panel {
   max-width: 480px;
   margin: 8vh auto;
